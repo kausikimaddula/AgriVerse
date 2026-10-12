@@ -1,0 +1,29 @@
+{
+  "whatsappLink": "https://chat.whatsapp.com/invite/AgriVerseUECourse2026",
+  "totalSeats": 1000,
+  "bookedSeats": 13,
+  "registrationLimit": 1000,
+  "isOpen": true,
+  "qrCodes": [
+    {
+      "id": "qr-primary-gpay",
+      "title": "GPay Primary UPI",
+      "upiId": "sundarrajan.it@okaxis",
+      "imageUrl": "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa=sundarrajan.it@okaxis%26pn=sundarrajan.it%26am=350%26cu=INR%26tn=AgriVerse_UE_Course",
+      "storageProvider": "default",
+      "isActive": true,
+      "createdAt": "2026-10-11T07:15:43.841Z"
+    }
+  ],
+  "whatsappGroups": [
+    {
+      "id": "wa-primary-delegates",
+      "name": "AgriVerse 2026 Primary Community",
+      "inviteUrl": "https://chat.whatsapp.com/invite/AgriVerseUECourse2026",
+      "priority": 1,
+      "isActive": true,
+      "createdAt": "2026-10-11T07:15:43.841Z"
+    }
+  ],
+  "fee": 350
+}

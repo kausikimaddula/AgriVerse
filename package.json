@@ -1,0 +1,12 @@
+{
+  "name": "agriverse-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AgriVerse 2026 - National AgriTech & Sustainable Summit (Frontend + Backend)",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "start:backend": "cd backend && npm start",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install"
+  }
+}

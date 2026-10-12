@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-mint: #EAF4F4;
+  --color-light-sage: #CCE3DE;
+  --color-muted-sage: #A4C3B2;
+  --color-forest-sage: #6B9080;
+  --color-deep-pine: #1A3C34;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #EAF4F4;
+  color: #1A3C34;
+  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #EAF4F4;
+}
+::-webkit-scrollbar-thumb {
+  background: #A4C3B2;
+  border-radius: 15px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6B9080;
+}
+
+/* Tailwind-Powered Utility Components (15px Border Radius) */
+@layer components {
+  .soft-card {
+    @apply bg-white border border-[#CCE3DE] rounded-[15px] shadow-sm;
+  }
+
+  .soft-card-sage {
+    @apply bg-[#CCE3DE] border border-[#A4C3B2] rounded-[15px];
+  }
+
+  .soft-card-deep {
+    @apply bg-[#1A3C34] text-[#EAF4F4] border border-[#3D6153] rounded-[15px];
+  }
+}
+
+@keyframes slideDownCard {
+  0% {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(10px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-card-down {
+  animation: slideDownCard 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Realistic Lanyard Drop Animation from the Top Edge */
+@keyframes lanyardDropFromTop {
+  0% {
+    opacity: 0;
+    transform: translateY(-140%) scale(0.92);
+  }
+  45% {
+    opacity: 1;
+  }
+  70% {
+    transform: translateY(20px) scale(1.015) rotate(-1.8deg);
+  }
+  83% {
+    transform: translateY(-8px) scale(0.995) rotate(0.9deg);
+  }
+  93% {
+    transform: translateY(3px) scale(1.002) rotate(-0.3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+.animate-lanyard-drop {
+  transform-origin: top center;
+  animation: lanyardDropFromTop 1.15s cubic-bezier(0.18, 0.9, 0.28, 1.15) both;
+  will-change: transform, opacity;
+}
+
+/* Gentle hanging sway after dropping */
+@keyframes gentleLanyardSway {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(0.5deg);
+  }
+  70% {
+    transform: rotate(-0.5deg);
+  }
+}
+
+.animate-lanyard-idle {
+  transform-origin: top center;
+  animation: gentleLanyardSway 6s ease-in-out infinite 1.2s;
+}
+
