@@ -34,7 +34,7 @@ export default function ImageViewerModal() {
     reg.proofUrl ||
     reg.idProof ||
     reg.paymentProofUrl ||
-    (reg.screenshotPath ? `http://localhost:5000/${reg.screenshotPath.replace(/^public\//, '')}` : '');
+    (reg.screenshotPath ? `${(import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5050').replace(/\/+$/, '')}/${reg.screenshotPath.replace(/^public\//, '')}` : '');
 
   const isVerified =
     reg.verificationStatus === 'VERIFIED' ||

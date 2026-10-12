@@ -3,15 +3,32 @@ import axios from 'axios';
 /**
  * Dynamic Round-Robin & Auto-Failover API Client Engine
  * Configurable Multi-Endpoint Pool with Automatic 5xx/Timeout Retry on Backup Server
+ * Fetches base API URL dynamically from frontend environment (.env)
  */
 
-// Default endpoint pool: Primary Node + Localhost Replica / Backup Node
+// Helper to normalize configured API URL from .env
+function getNormalizedEnvApiUrl() {
+  const envUrl = (
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_PRIMARY_API_URL ||
+    'http://localhost:5050/api'
+  ).trim();
+
+  const stripped = envUrl.replace(/\/+$/, '');
+  return stripped.endsWith('/api') ? stripped : `${stripped}/api`;
+}
+
+const PRIMARY_API_ENDPOINT = getNormalizedEnvApiUrl();
+const REPLICA_API_ENDPOINT = import.meta.env.VITE_REPLICA_API_URL 
+  ? import.meta.env.VITE_REPLICA_API_URL.trim().replace(/\/+$/, '') 
+  : PRIMARY_API_ENDPOINT;
+
+// Default endpoint pool sourced from frontend .env keys
 const DEFAULT_ENDPOINTS = [
-  import.meta.env.VITE_PRIMARY_API_URL || 'http://localhost:5050/api',
-  import.meta.env.VITE_REPLICA_API_URL || 'http://localhost:5050/api',
-  'http://127.0.0.1:5050/api',
-  'http://127.0.0.1:5050/api'
-];
+  PRIMARY_API_ENDPOINT,
+  REPLICA_API_ENDPOINT
+].filter(Boolean);
 
 class FailoverEngine {
   constructor(endpoints = DEFAULT_ENDPOINTS) {
@@ -84,10 +101,11 @@ class FailoverEngine {
       (config) => {
         config.metadata = { startTime: Date.now() };
 
-        // Attach target base URL
-        const base = this.getActiveEndpoint();
+        // Attach target base URL from .env
+        const base = this.getActiveEndpoint().replace(/\/+$/, '');
         if (!config.url.startsWith('http://') && !config.url.startsWith('https://')) {
-          config.url = `${base.replace(/\/$/, '')}/${config.url.replace(/^\//, '')}`;
+          const cleanPath = config.url.replace(/^\/?(api\/)?/, '');
+          config.url = `${base}/${cleanPath}`;
         }
 
         // Attach admin JWT token if present in localStorage

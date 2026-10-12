@@ -15,10 +15,10 @@ export function AppProvider({ children }) {
     serverNode: 'node-5000'
   });
 
-  // Node & Gateway Failover State
+  // Node & Gateway Failover State sourced dynamically from .env / failoverApi
   const [nodeState, setNodeState] = useState({
-    activeEndpoint: 'http://localhost:5000/api',
-    activeNode: { id: 'node-1', healthy: true, lastLatency: 12, lastStatus: 'ONLINE' },
+    activeEndpoint: failoverApi.getActiveEndpoint(),
+    activeNode: failoverApi.getActiveNodeStats() || { id: 'node-1', healthy: true, lastLatency: 12, lastStatus: 'ONLINE' },
     allNodes: []
   });
 

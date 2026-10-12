@@ -5,7 +5,7 @@
  * live telemetry updates, countdown timer, schedule switching, and modal passes.
  */
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = window.__API_BASE__ || 'http://localhost:5050/api';
 const STORAGE_KEY = 'agriverse_2026_registrations';
 const MAX_SEATS = 500;
 let initialFilledSeats = 0;
