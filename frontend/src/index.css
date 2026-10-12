@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
 
 :root {
   --color-mint: #EAF4F4;
@@ -15,9 +14,14 @@ body {
   padding: 0;
   background-color: #EAF4F4;
   color: #1A3C34;
-  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .font-fraunces, .font-cormorant {
+  font-feature-settings: "dlig" 1, "liga" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
 }
 
 /* Custom Scrollbar */
@@ -29,24 +33,20 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: #A4C3B2;
-  border-radius: 15px;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #6B9080;
 }
 
-/* Tailwind-Powered Utility Components (15px Border Radius) */
+/* Clean, Crisp Utility Components */
 @layer components {
-  .soft-card {
-    @apply bg-white border border-[#CCE3DE] rounded-[15px] shadow-sm;
+  .card-clean {
+    @apply bg-white border border-[#DCE8E2] rounded-xl shadow-sm;
   }
 
-  .soft-card-sage {
-    @apply bg-[#CCE3DE] border border-[#A4C3B2] rounded-[15px];
-  }
-
-  .soft-card-deep {
-    @apply bg-[#1A3C34] text-[#EAF4F4] border border-[#3D6153] rounded-[15px];
+  .card-dark {
+    @apply bg-[#0D2818] text-[#FAF7EE] border border-[#1E4D35] rounded-xl;
   }
 }
 

@@ -88,7 +88,7 @@ export default function ImageViewerModal() {
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in overflow-y-auto">
-      <div className="bg-[#0C1513] text-white w-full max-w-5xl rounded-3xl border border-white/20 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+      <div className="bg-[#0C1513] text-white w-full max-w-5xl rounded-xl border border-white/20 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#132A24]/90">
@@ -149,7 +149,7 @@ export default function ImageViewerModal() {
             </div>
 
             {/* Profile Grid */}
-            <div className="space-y-3 text-xs bg-white/5 p-4 rounded-2xl border border-white/10">
+            <div className="space-y-3 text-xs bg-white/5 p-4 rounded-xl border border-white/10">
               <div className="flex justify-between border-b border-white/10 pb-2">
                 <span className="text-[#CCE3DE]">Full Name:</span>
                 <span className="font-bold text-white text-right">{reg.name || reg.fullName}</span>
@@ -185,7 +185,7 @@ export default function ImageViewerModal() {
             </div>
 
             {/* Entered Transaction ID Card */}
-            <div className="p-4 rounded-2xl bg-[#1A3C34] border border-[#27784A] space-y-2">
+            <div className="p-4 rounded-xl bg-[#1A3C34] border border-[#27784A] space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] uppercase font-bold text-[#CCE3DE] flex items-center gap-1.5">
                   <CreditCard className="w-3.5 h-3.5 text-[#84CC16]" />
@@ -297,7 +297,7 @@ export default function ImageViewerModal() {
             </div>
 
             {/* Image Viewport */}
-            <div className="flex-1 min-h-[350px] overflow-auto flex items-center justify-center bg-black/60 rounded-2xl border border-white/10 p-3 relative">
+            <div className="flex-1 min-h-[350px] overflow-auto flex items-center justify-center bg-black/60 rounded-xl border border-white/10 p-3 relative">
               {proofUrl ? (
                 <img
                   src={proofUrl}
@@ -322,7 +322,7 @@ export default function ImageViewerModal() {
 
             {/* Inline Reject Modal / Form */}
             {showRejectModal && (
-              <div className="mt-4 p-4 rounded-2xl bg-[#FEE2E2]/15 border border-[#DC2626] space-y-3 animate-in fade-in">
+              <div className="mt-4 p-4 rounded-xl bg-[#FEE2E2]/15 border border-[#DC2626] space-y-3 animate-in fade-in">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-[#DC2626] uppercase tracking-wider flex items-center gap-1.5">
                     <ShieldAlert className="w-4 h-4" />

@@ -9,13 +9,13 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-3 sm:top-5 left-0 right-0 z-50 px-3 sm:px-6 max-w-6xl mx-auto pointer-events-none">
-      <div className="w-full bg-[#1A3C34] text-white border border-[#3D6153] rounded-[15px] shadow-2xl px-4 sm:px-8 py-3.5 flex items-center justify-between pointer-events-auto backdrop-blur-md">
+      <div className="w-full bg-[#1A3C34] text-white border border-[#3D6153]/80 rounded-xl shadow-lg px-4 sm:px-8 py-3.5 flex items-center justify-between pointer-events-auto backdrop-blur-md">
         {/* Brand Name on the Left Side Corner */}
         <Link
           to="/"
           className="text-base sm:text-xl font-bold tracking-tight text-white flex items-center gap-2.5 font-display hover:opacity-90 transition-opacity"
         >
-          <div className="w-8 h-8 rounded-[10px] bg-black flex items-center justify-center shadow-inner border border-white/10 overflow-hidden shrink-0">
+          <div className="w-8 h-8 rounded-md bg-black flex items-center justify-center border border-white/10 overflow-hidden shrink-0">
             <AgrigenLogo className="w-full h-full object-cover" />
           </div>
           <span className="font-extrabold tracking-wide">AgriVerse</span>

@@ -81,7 +81,7 @@ export default function AdminDashboardPage() {
 
         {/* Top Right Controls: Registration Toggle & Refresh */}
         <div className="flex items-center gap-3 self-start md:self-auto">
-          <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white border border-[#CCE3DE] shadow-xs">
+          <div className="flex items-center gap-3 px-3.5 py-2 rounded-lg bg-white border border-[#DCE8E2] shadow-xs">
             <span className="text-xs font-bold text-[#1A3C34]">Registrations:</span>
             <button
               type="button"
@@ -107,7 +107,7 @@ export default function AdminDashboardPage() {
             type="button"
             onClick={handleManualRefresh}
             disabled={refreshing}
-            className="p-2.5 rounded-2xl bg-white border border-[#CCE3DE] text-[#1A3C34] hover:bg-[#F4F9F6] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+            className="p-2.5 rounded-lg bg-white border border-[#DCE8E2] text-[#1A3C34] hover:bg-[#F4F9F6] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
             title="Refresh dashboard metrics"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-[#15803D]' : ''}`} />
@@ -120,12 +120,12 @@ export default function AdminDashboardPage() {
           ====================================================================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* CARD 1: TOTAL REGISTRATIONS */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#CCE3DE] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-[#DCE8E2] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-[11px] font-extrabold tracking-wider uppercase text-[#6B9080]">
               TOTAL REGISTRATIONS
             </span>
-            <div className="w-9 h-9 rounded-xl bg-[#EAF4F4] text-[#15803D] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-[#EAF4F4] text-[#15803D] flex items-center justify-center">
               <Users className="w-5 h-5" />
             </div>
           </div>
@@ -140,12 +140,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* CARD 2: TOTAL PARTICIPANTS */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#CCE3DE] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-[#DCE8E2] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-[11px] font-extrabold tracking-wider uppercase text-[#6B9080]">
               TOTAL PARTICIPANTS
             </span>
-            <div className="w-9 h-9 rounded-xl bg-[#EAF4F4] text-[#15803D] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-[#EAF4F4] text-[#15803D] flex items-center justify-center">
               <GraduationCap className="w-5 h-5" />
             </div>
           </div>
@@ -160,12 +160,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* CARD 3: PENDING VERIFICATION */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#CCE3DE] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-[#DCE8E2] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-[11px] font-extrabold tracking-wider uppercase text-[#D97706]">
               PENDING VERIFICATION
             </span>
-            <div className="w-9 h-9 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-[#FEF3C7] text-[#D97706] flex items-center justify-center">
               <Clock className="w-5 h-5" />
             </div>
           </div>
@@ -184,12 +184,12 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* CARD 4: VERIFIED REGISTRATIONS */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#CCE3DE] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-xl border border-[#DCE8E2] p-5 sm:p-6 shadow-xs flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-[11px] font-extrabold tracking-wider uppercase text-[#15803D]">
               VERIFIED REGISTRATIONS
             </span>
-            <div className="w-9 h-9 rounded-xl bg-[#DCFCE7] text-[#15803D] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-[#DCFCE7] text-[#15803D] flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
@@ -211,7 +211,7 @@ export default function AdminDashboardPage() {
       {/* ======================================================================
           3. REGISTRATION CAPACITY & QUOTA PROGRESS CARD
           ====================================================================== */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#CCE3DE] p-5 sm:p-6 shadow-xs space-y-4">
+      <div className="bg-white rounded-xl border border-[#DCE8E2] p-5 sm:p-6 shadow-xs space-y-4">
         <div className="flex items-center gap-2 text-xs font-bold text-[#1A3C34]">
           <TrendingUp className="w-4 h-4 text-[#15803D]" />
           <span>AgriVerse Registration Capacity &amp; Quota</span>
@@ -236,7 +236,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-[#EAF4F4] rounded-full h-3.5 p-0.5 border border-[#CCE3DE] overflow-hidden">
+        <div className="w-full bg-[#EAF4F4] rounded-full h-3 p-0.5 border border-[#DCE8E2] overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-[#15803D] via-[#84CC16] to-[#15803D] transition-all duration-700 shadow-xs"
             style={{ width: `${Math.min(100, Math.max(0, percentFilled))}%` }}
@@ -254,8 +254,8 @@ export default function AdminDashboardPage() {
       {/* ======================================================================
           4. RECENT REGISTRATIONS TABLE
           ====================================================================== */}
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#CCE3DE] p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#CCE3DE] pb-4">
+      <div className="bg-white rounded-xl border border-[#DCE8E2] p-5 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#DCE8E2] pb-4">
           <div>
             <h2 className="text-base sm:text-lg font-black text-[#1A3C34] tracking-tight">
               Recent Registrations

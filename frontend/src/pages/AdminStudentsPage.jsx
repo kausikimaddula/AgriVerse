@@ -168,7 +168,7 @@ export default function AdminStudentsPage() {
               setFeedbackMsg({ type: '', text: '' });
               setShowAddModal(true);
             }}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#15803D] hover:bg-[#1E5D39] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-[#15803D] hover:bg-[#1E5D39] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             <span>+ Add Student</span>
@@ -179,7 +179,7 @@ export default function AdminStudentsPage() {
       {/* Global Feedback Alert */}
       {feedbackMsg.text && (
         <div
-          className={`p-4 rounded-2xl text-xs flex items-center justify-between border ${
+          className={`p-4 rounded-lg text-xs flex items-center justify-between border ${
             feedbackMsg.type === 'error'
               ? 'bg-[#FEE2E2] border-[#FCA5A5] text-[#991B1B]'
               : 'bg-[#DCFCE7] border-[#86EFAC] text-[#15803D]'
@@ -204,7 +204,7 @@ export default function AdminStudentsPage() {
       )}
 
       {/* Search Bar - Preserved exactly as requested */}
-      <div className="bg-white p-5 rounded-3xl border border-[#CCE3DE] shadow-sm flex items-center gap-3">
+      <div className="bg-white p-5 rounded-xl border border-[#DCE8E2] shadow-sm flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-[#6B9080] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -212,13 +212,13 @@ export default function AdminStudentsPage() {
             placeholder="Search by student name, register number, department..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#F4F9F6] border border-[#CCE3DE] text-xs sm:text-sm font-medium text-[#1A3C34] outline-none focus:border-[#1A3C34]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[#F4F9F6] border border-[#DCE8E2] text-xs sm:text-sm font-medium text-[#1A3C34] outline-none focus:border-[#1A3C34]"
           />
         </div>
         <button
           type="button"
           onClick={() => loadAdminRegistrations(adminToken)}
-          className="p-3 rounded-xl bg-white hover:bg-[#CCE3DE] border border-[#CCE3DE] text-[#1A3C34] transition-all cursor-pointer shadow-xs"
+          className="p-3 rounded-lg bg-white hover:bg-[#EDF5F1] border border-[#DCE8E2] text-[#1A3C34] transition-all cursor-pointer shadow-xs"
           title="Refresh list"
         >
           <RefreshCw className="w-4 h-4" />
@@ -226,7 +226,7 @@ export default function AdminStudentsPage() {
       </div>
 
       {/* Student List Table in Reference Format */}
-      <div className="bg-white rounded-3xl border border-[#CCE3DE] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#DCE8E2] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[700px]">
             <thead>
@@ -342,7 +342,7 @@ export default function AdminStudentsPage() {
           ====================================================================== */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-[#CCE3DE] shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-6 my-8">
+          <div className="bg-white rounded-xl border border-[#DCE8E2] shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-6 my-8">
             <div className="flex items-center justify-between border-b border-[#CCE3DE] pb-4">
               <div className="space-y-0.5">
                 <h2 className="text-xl font-black text-[#1A3C34] flex items-center gap-2">
@@ -529,7 +529,7 @@ export default function AdminStudentsPage() {
           ====================================================================== */}
       {editingStudent && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-[#CCE3DE] shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-6 my-8">
+          <div className="bg-white rounded-xl border border-[#DCE8E2] shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-6 my-8">
             <div className="flex items-center justify-between border-b border-[#CCE3DE] pb-4">
               <div className="space-y-0.5">
                 <h2 className="text-xl font-black text-[#1A3C34] flex items-center gap-2">

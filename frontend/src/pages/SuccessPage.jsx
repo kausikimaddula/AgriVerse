@@ -67,18 +67,18 @@ export default function SuccessPage() {
 
   return (
     <div className="pt-24 sm:pt-28 pb-16 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto min-h-[calc(100vh-160px)]">
-      <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#CCE3DE] shadow-xl space-y-6 text-center">
+      <div className="bg-white p-6 sm:p-10 rounded-xl border border-[#DCE8E2] shadow-sm space-y-6 text-center">
         {/* Celebration Header */}
-        <div className="w-16 h-16 mx-auto rounded-full bg-[#DCFCE7] text-[#15803D] flex items-center justify-center shadow-sm">
+        <div className="w-16 h-16 mx-auto rounded-full bg-[#DCFCE7] text-[#15803D] flex items-center justify-center shadow-xs">
           <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
         </div>
 
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAF4F4] text-[#15803D] text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#EDF5F1] border border-[#DCE8E2] text-[#15803D] text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Registration &amp; Payment Submitted</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-[#1A3C34]">
+          <h1 className="text-2xl sm:text-3xl font-fraunces font-bold text-[#1A3C34]">
             You're Confirmed for AgriVerse 2026!
           </h1>
           <p className="text-xs sm:text-sm text-[#3D6153] max-w-lg mx-auto">
@@ -87,7 +87,7 @@ export default function SuccessPage() {
         </div>
 
         {/* Registration ID Badge */}
-        <div className="p-4 rounded-[18px] bg-[#F4F9F6] border border-[#CCE3DE] max-w-md mx-auto flex items-center justify-between">
+        <div className="p-4 rounded-lg bg-[#F8FAF9] border border-[#DCE8E2] max-w-md mx-auto flex items-center justify-between">
           <div className="text-left">
             <span className="text-[10px] uppercase font-bold text-[#6B9080] block">
               Official Registration ID
@@ -99,7 +99,7 @@ export default function SuccessPage() {
           <button
             type="button"
             onClick={copyRegId}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-[10px] bg-white hover:bg-[#CCE3DE] border border-[#CCE3DE] text-xs font-bold text-[#1A3C34] transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-white hover:bg-[#EDF5F1] border border-[#DCE8E2] text-xs font-bold text-[#1A3C34] transition-colors cursor-pointer"
           >
             {copied ? (
               <>
@@ -117,8 +117,8 @@ export default function SuccessPage() {
 
         {/* Registration Details Grid */}
         {registration && (
-          <div className="p-5 rounded-[18px] bg-[#F4F9F6] border border-[#CCE3DE] text-left text-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-[#CCE3DE] pb-2.5">
+          <div className="p-5 rounded-lg bg-[#F8FAF9] border border-[#DCE8E2] text-left text-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-[#DCE8E2] pb-2.5">
               <div>
                 <span className="text-[10px] uppercase font-bold text-[#6B9080] block">Student Name</span>
                 <span className="font-bold text-sm text-[#1A3C34]">{registration.name || registration.fullName}</span>
@@ -151,15 +151,15 @@ export default function SuccessPage() {
         )}
 
         {/* WhatsApp Community Onboarding Banner */}
-        <div className="p-5 rounded-[20px] bg-[#1A3C34] text-white flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+        <div className="p-5 rounded-xl bg-[#0D2818] border border-[#1E4D35] text-white flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
           <div className="space-y-1">
-            <span className="text-[10px] uppercase font-bold text-[#84CC16] tracking-wider block">
+            <span className="text-[10px] uppercase font-bold text-[#A3E635] tracking-wider block">
               Essential Next Step
             </span>
             <h3 className="font-bold text-sm sm:text-base">
               Join Official WhatsApp Community Group
             </h3>
-            <p className="text-xs text-[#CCE3DE]">
+            <p className="text-xs text-[#DCE8E2]">
               Receive event schedules, room allocation, workshop announcements, and keynote live updates.
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function SuccessPage() {
             href={whatsappLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-5 py-3 rounded-[12px] bg-[#27784A] hover:bg-[#1E5D39] text-white font-bold text-xs uppercase tracking-wider shrink-0 transition-all flex items-center gap-2 shadow-md"
+            className="px-5 py-3 rounded-lg bg-[#27784A] hover:bg-[#1E5D39] text-white font-bold text-xs uppercase tracking-wider shrink-0 transition-all flex items-center gap-2 shadow-sm"
           >
             <span>Join WhatsApp Group</span>
             <ExternalLink className="w-4 h-4" />
@@ -178,14 +178,14 @@ export default function SuccessPage() {
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             to="/id-card"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-[12px] bg-[#1A3C34] hover:bg-[#132A24] text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-md flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-[#1A3C34] hover:bg-[#132A24] text-white font-bold text-xs sm:text-sm tracking-wide transition-all shadow-sm flex items-center justify-center gap-2"
           >
             <Download className="w-4 h-4" />
             <span>Open &amp; Print ID Card</span>
           </Link>
           <Link
             to="/"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-[12px] bg-white hover:bg-[#CCE3DE] border border-[#CCE3DE] text-[#1A3C34] font-semibold text-xs sm:text-sm transition-all"
+            className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-white hover:bg-[#EDF5F1] border border-[#DCE8E2] text-[#1A3C34] font-semibold text-xs sm:text-sm transition-all"
           >
             Return to Home
           </Link>

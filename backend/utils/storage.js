@@ -1,17 +1,17 @@
 import multer from 'multer';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
-
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
+dotenv.config();
 
-// Configure Cloudinary if credentials are present
-const isCloudinaryConfigured = Boolean(
+// Configure Cloudinary as Primary CDN Storage Engine
+export const isCloudinaryConfigured = Boolean(
   process.env.CLOUDINARY_CLOUD_NAME &&
   process.env.CLOUDINARY_API_KEY &&
   process.env.CLOUDINARY_API_SECRET
@@ -21,23 +21,24 @@ if (isCloudinaryConfigured) {
   cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true
   });
-  console.log('☁️  Cloudinary CDN storage engine active');
+  console.log(' Cloudinary CDN storage engine active (All images stored in Cloudinary, URLs stored in MongoDB)');
 } else {
-  console.log('📁 Cloudinary not configured; defaulting to Local Disk storage fallback (/uploads)');
+  console.warn(' WARNING: Cloudinary credentials missing in .env! Please configure CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.');
 }
 
 // Multer in-memory storage buffer (up to 10MB JPG/PNG/WEBP)
 const storage = multer.memoryStorage();
 
-const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
 const fileFilter = (req, file, cb) => {
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file format. Only JPG, PNG, and WEBP files up to 10MB are permitted.'), false);
+    cb(new Error('Invalid file format. Only JPG, PNG, and WEBP images up to 10MB are permitted.'), false);
   }
 };
 
@@ -49,84 +50,128 @@ export const upload = multer({
   fileFilter
 });
 
-// Local upload directory fallback (/public/uploads/payment_screenshots/)
-const uploadsDir = path.join(__dirname, '..', 'public', 'uploads', 'payment_screenshots');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
 /**
- * Upload memory buffer to Cloudinary CDN with automatic fallback to Local Disk (/public/uploads/payment_screenshots/)
+ * Upload a memory Buffer, base64 data URI, or image stream directly to Cloudinary CDN
+ *
+ * @param {Buffer|string} fileInput - Memory buffer or data:image base64 string
+ * @param {Object} options - Custom Cloudinary options (folder, publicId, etc.)
+ * @returns {Promise<{ proofUrl: string, url: string, publicId: string, storageProvider: string }>}
  */
-export async function processAndStoreProof(fileBuffer, originalName, mimeType, regId) {
-  if (!fileBuffer) return { proofUrl: null, storageProvider: 'none', publicId: null };
+export async function uploadToCloudinary(fileInput, options = {}) {
+  if (!fileInput) return null;
 
-  // 1. Try Cloudinary Primary CDN
-  if (isCloudinaryConfigured) {
-    try {
-      const uploadResult = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: process.env.CLOUDINARY_FOLDER || 'NewForm',
-            public_id: `${regId}_proof`,
-            resource_type: 'image'
-          },
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result);
+  if (!isCloudinaryConfigured) {
+    throw new Error('Cloudinary is not configured. Images must be stored in Cloudinary and cannot be stored directly in MongoDB.');
+  }
+
+  const baseFolder = process.env.CLOUDINARY_FOLDER || 'NewForm';
+  const subfolder = options.subfolder || options.folder || 'payment_screenshots';
+  const fullFolder = subfolder.startsWith(baseFolder) ? subfolder : `${baseFolder}/${subfolder}`;
+  
+  const publicId = options.publicId
+    ? `${options.publicId}`
+    : `asset_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // 1. Buffer Upload via upload_stream
+  if (Buffer.isBuffer(fileInput)) {
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: fullFolder,
+          public_id: publicId,
+          resource_type: 'image',
+          overwrite: true
+        },
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary stream upload error:', error);
+            return reject(new Error(`Cloudinary upload failed: ${error.message}`));
           }
-        );
-        uploadStream.end(fileBuffer);
-      });
+          resolve({
+            proofUrl: result.secure_url,
+            url: result.secure_url,
+            publicId: result.public_id,
+            storageProvider: 'cloudinary',
+            format: result.format,
+            bytes: result.bytes,
+            width: result.width,
+            height: result.height
+          });
+        }
+      );
+      uploadStream.end(fileInput);
+    });
+  }
 
+  // 2. Base64 Data URI or URL Upload via uploader.upload
+  if (typeof fileInput === 'string' && (fileInput.startsWith('data:image') || fileInput.startsWith('http://') || fileInput.startsWith('https://'))) {
+    try {
+      const result = await cloudinary.uploader.upload(fileInput, {
+        folder: fullFolder,
+        public_id: publicId,
+        resource_type: 'image',
+        overwrite: true
+      });
       return {
-        proofUrl: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
-        storageProvider: 'cloudinary'
+        proofUrl: result.secure_url,
+        url: result.secure_url,
+        publicId: result.public_id,
+        storageProvider: 'cloudinary',
+        format: result.format,
+        bytes: result.bytes,
+        width: result.width,
+        height: result.height
       };
-    } catch (cdnErr) {
-      console.warn('⚠️ Cloudinary upload failed, falling back to local disk:', cdnErr.message);
+    } catch (err) {
+      console.error('Cloudinary base64 upload error:', err);
+      throw new Error(`Cloudinary upload failed: ${err.message}`);
     }
   }
 
-  // 2. Auto-Fallback: Local Disk Storage (/public/uploads/payment_screenshots/)
-  try {
-    const ext = path.extname(originalName) || (mimeType === 'image/png' ? '.png' : mimeType === 'image/webp' ? '.webp' : '.jpg');
-    const safeFilename = `${regId}_${Date.now()}${ext}`;
-    const destinationPath = path.join(uploadsDir, safeFilename);
-
-    await fs.promises.writeFile(destinationPath, fileBuffer);
-
-    return {
-      proofUrl: `/uploads/payment_screenshots/${safeFilename}`,
-      publicId: safeFilename,
-      storageProvider: 'local'
-    };
-  } catch (diskErr) {
-    console.error('❌ Local disk write failed:', diskErr);
-    return {
-      proofUrl: null,
-      publicId: null,
-      storageProvider: 'none'
-    };
-  }
+  throw new Error('Unsupported image input type for Cloudinary upload.');
 }
 
 /**
- * Delete asset with automated cleanup from Cloudinary or local disk
+ * Process and upload image proof / screenshot to Cloudinary CDN
+ * Only the resulting Cloudinary HTTPS URL is stored in MongoDB.
+ *
+ * @param {Buffer|string} fileInput - Memory buffer or base64 string
+ * @param {string} originalName - Original filename
+ * @param {string} mimeType - Image mime type
+ * @param {string} regId - Registration ID or unique identifier
+ * @param {string} subfolder - Subfolder in Cloudinary (e.g. 'payment_screenshots', 'qr_codes')
  */
-export async function deleteStoredAsset(publicId, storageProvider) {
+export async function processAndStoreProof(fileInput, originalName, mimeType, regId, subfolder = 'payment_screenshots') {
+  if (!fileInput) {
+    return { proofUrl: null, storageProvider: 'none', publicId: null };
+  }
+
+  const cleanRegKey = (regId || 'proof').toString().replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safePublicId = `${cleanRegKey}_${Date.now()}`;
+
+  const cdnResult = await uploadToCloudinary(fileInput, {
+    subfolder,
+    publicId: safePublicId
+  });
+
+  return {
+    proofUrl: cdnResult.proofUrl,
+    publicId: cdnResult.publicId,
+    storageProvider: 'cloudinary'
+  };
+}
+
+/**
+ * Automated asset deletion from Cloudinary CDN
+ */
+export async function deleteStoredAsset(publicId, storageProvider = 'cloudinary') {
   if (!publicId) return;
   try {
-    if (storageProvider === 'cloudinary' && isCloudinaryConfigured) {
-      await cloudinary.uploader.destroy(publicId);
-    } else {
-      const localFile = path.join(uploadsDir, publicId);
-      if (fs.existsSync(localFile)) {
-        await fs.promises.unlink(localFile);
-      }
+    if (isCloudinaryConfigured) {
+      const res = await cloudinary.uploader.destroy(publicId);
+      console.log(`Cloudinary asset destroyed [${publicId}]:`, res);
     }
   } catch (err) {
-    console.warn('⚠️ Asset cleanup notice:', err.message);
+    console.warn('Cloudinary asset cleanup notice:', err.message);
   }
 }

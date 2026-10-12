@@ -8,7 +8,7 @@
 const API_BASE = 'http://localhost:5000/api';
 const STORAGE_KEY = 'agriverse_2026_registrations';
 const MAX_SEATS = 500;
-let initialFilledSeats = 372;
+let initialFilledSeats = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   // --- 1. SEAT MANAGEMENT & STATS ---

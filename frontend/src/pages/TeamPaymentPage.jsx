@@ -363,7 +363,7 @@ export default function TeamPaymentPage() {
       {/* Main Container */}
       <div className="space-y-6">
         {/* Header & Lookup Card */}
-        <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#CCE3DE] shadow-xl space-y-6">
+        <div className="bg-white p-6 sm:p-10 rounded-xl border border-gray-200 shadow-sm space-y-6">
           <div className="text-center sm:text-left space-y-2 border-b border-[#CCE3DE] pb-6">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAF4F4] text-[#15803D] text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
@@ -441,7 +441,7 @@ export default function TeamPaymentPage() {
 
         {/* SCENARIO 1: ALREADY PAID & VERIFIED */}
         {registration && isVerified && (
-          <div className="bg-white p-6 sm:p-10 rounded-3xl border-2 border-[#15803D] shadow-xl space-y-6 animate-in fade-in text-center">
+          <div className="bg-white p-6 sm:p-10 rounded-xl border border-emerald-600 shadow-sm space-y-6 animate-in fade-in text-center">
             <div className="w-16 h-16 mx-auto rounded-full bg-[#DCFCE7] text-[#15803D] flex items-center justify-center shadow-xs">
               <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
             </div>
@@ -460,7 +460,7 @@ export default function TeamPaymentPage() {
             </div>
 
             {/* Profile Data Card */}
-            <div className="p-5 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] max-w-lg mx-auto grid grid-cols-2 sm:grid-cols-3 gap-4 text-left text-xs">
+            <div className="p-5 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] max-w-lg mx-auto grid grid-cols-2 sm:grid-cols-3 gap-4 text-left text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-[#6B9080] block">Registration ID</span>
                 <span className="font-mono font-bold text-[#1A3C34]">{registration.registrationId || registration.regNo}</span>
@@ -503,7 +503,7 @@ export default function TeamPaymentPage() {
 
         {/* SCENARIO 2: ALREADY PAID & PENDING ADMIN AUDIT */}
         {registration && isPendingReview && (
-          <div className="bg-white p-6 sm:p-10 rounded-3xl border-2 border-[#D97706] shadow-xl space-y-6 animate-in fade-in text-center">
+          <div className="bg-white p-6 sm:p-10 rounded-xl border border-amber-500 shadow-sm space-y-6 animate-in fade-in text-center">
             <div className="w-16 h-16 mx-auto rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shadow-xs">
               <Clock className="w-10 h-10 stroke-[2.5]" />
             </div>
@@ -522,7 +522,7 @@ export default function TeamPaymentPage() {
             </div>
 
             {/* Submission Detail Card */}
-            <div className="p-5 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] max-w-lg mx-auto grid grid-cols-2 gap-4 text-left text-xs">
+            <div className="p-5 rounded-lg bg-slate-50 border border-gray-200 max-w-lg mx-auto grid grid-cols-2 gap-4 text-left text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-[#6B9080] block">Registration ID</span>
                 <span className="font-mono font-bold text-[#1A3C34]">{registration.registrationId || registration.regNo}</span>
@@ -580,7 +580,7 @@ export default function TeamPaymentPage() {
 
         {/* SCENARIO 3: UNPAID (DEFERRED / PAY LATER) */}
         {registration && isUnpaid && (
-          <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#CCE3DE] shadow-xl space-y-6 animate-in fade-in">
+          <div className="bg-white p-6 sm:p-10 rounded-xl border border-gray-200 shadow-sm space-y-6 animate-in fade-in">
             {/* Header */}
             <div className="border-b border-[#CCE3DE] pb-5 space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FEF3C7] text-[#B45309] text-xs font-bold uppercase tracking-wider">
@@ -596,7 +596,7 @@ export default function TeamPaymentPage() {
             </div>
 
             {/* Reserved Profile Summary Pill */}
-            <div className="p-4 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="p-4 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-[#6B9080] block">Registration ID</span>
                 <span className="font-mono font-bold text-[#1A3C34]">{registration.registrationId || registration.regNo}</span>
@@ -618,14 +618,14 @@ export default function TeamPaymentPage() {
             {/* Complete Payment Submission Form */}
             <form onSubmit={handleCompletePayment} className="space-y-6">
               {paymentError && (
-                <div className="p-4 rounded-2xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-center gap-3">
+                <div className="p-4 rounded-lg bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 shrink-0 text-[#DC2626]" />
                   <span className="font-medium leading-relaxed">{paymentError}</span>
                 </div>
               )}
 
               {/* 1. UPI QR Code Display Grid (Shows ALL Active QR Codes from Admin Panel) */}
-              <div className="p-5 sm:p-7 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] space-y-5">
+              <div className="p-5 sm:p-7 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#CCE3DE]/70 pb-3">
                   <div>
                     <h3 className="text-sm font-bold text-[#1A3C34] uppercase tracking-wider flex items-center gap-2">
@@ -667,7 +667,7 @@ export default function TeamPaymentPage() {
                     return (
                       <div
                         key={method.id || idx}
-                        className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-[#CCE3DE] hover:border-[#15803D] transition-all shadow-sm flex flex-col items-center justify-between text-center relative group"
+                        className="bg-white p-5 sm:p-6 rounded-xl border border-[#DCE8E2] hover:border-[#15803D] transition-all shadow-xs flex flex-col items-center justify-between text-center relative group"
                       >
                         {/* Top Header Pill with Title & Account Counter */}
                         <div className="w-full flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[#CCE3DE]/60">
@@ -684,15 +684,15 @@ export default function TeamPaymentPage() {
                         </div>
 
                         {/* QR Image Box */}
-                        <div className="p-3.5 rounded-2xl bg-white border-2 border-[#CCE3DE] shadow-inner mb-3 flex items-center justify-center">
+                        <div className="p-3.5 rounded-xl bg-white border border-[#DCE8E2] shadow-xs mb-3 flex items-center justify-center">
                           {qrImageSrc ? (
                             <img
                               src={qrImageSrc}
                               alt={method.title || `Payment QR ${idx + 1}`}
-                              className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-xl"
+                              className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-lg"
                             />
                           ) : (
-                            <div className="w-48 h-48 sm:w-56 sm:h-56 bg-[#F4F9F6] rounded-xl flex flex-col items-center justify-center gap-2">
+                            <div className="w-48 h-48 sm:w-56 sm:h-56 bg-[#F4F9F6] rounded-lg flex flex-col items-center justify-center gap-2">
                               <RefreshCw className="w-7 h-7 animate-spin text-[#6B9080]" />
                               <span className="text-xs text-[#6B9080] font-medium">Generating QR...</span>
                             </div>
@@ -750,7 +750,7 @@ export default function TeamPaymentPage() {
               </div>
 
               {/* 2. Proof Collection Fields */}
-              <div className="p-5 sm:p-7 rounded-2xl bg-[#CCE3DE]/40 border border-[#A4C3B2] space-y-5">
+              <div className="p-5 sm:p-7 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] space-y-5">
                 <h3 className="text-sm font-bold text-[#1A3C34] uppercase tracking-wider flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-[#15803D]" />
                   <span>Proof Collection &amp; UTR Reference</span>
@@ -798,7 +798,7 @@ export default function TeamPaymentPage() {
                   />
 
                   {filePreview ? (
-                    <div className="p-4 rounded-2xl bg-white border-2 border-[#15803D] shadow-sm space-y-3">
+                    <div className="p-4 rounded-xl bg-white border border-[#15803D] shadow-xs space-y-3">
                       <div className="flex flex-col sm:flex-row items-center gap-4">
                         <img
                           src={filePreview}
@@ -844,7 +844,7 @@ export default function TeamPaymentPage() {
                   ) : (
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-6 sm:p-8 rounded-2xl bg-white border-2 border-dashed border-[#A4C3B2] hover:border-[#1A3C34] transition-all cursor-pointer text-center space-y-2 group shadow-xs"
+                      className="p-6 sm:p-8 rounded-xl bg-white border-2 border-dashed border-[#DCE8E2] hover:border-[#1A3C34] transition-all cursor-pointer text-center space-y-2 group shadow-xs"
                     >
                       <div className="w-12 h-12 mx-auto rounded-full bg-[#EAF4F4] group-hover:bg-[#CCE3DE] text-[#1A3C34] flex items-center justify-center transition-all">
                         <Upload className="w-6 h-6 stroke-[2]" />
@@ -866,7 +866,7 @@ export default function TeamPaymentPage() {
               </div>
 
               {/* 3. WhatsApp Community */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-[#EAF4F4] border border-[#CCE3DE] space-y-2.5">
+              <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] space-y-2.5">
                 <div>
                   <span className="text-xs font-bold text-[#1A3C34] block mb-1">
                     Official WhatsApp Community
@@ -911,7 +911,7 @@ export default function TeamPaymentPage() {
               <button
                 type="submit"
                 disabled={paymentSubmitting}
-                className="w-full py-4 rounded-[15px] bg-[#1A3C34] hover:bg-[#132A24] text-white font-bold text-xs sm:text-sm uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-4 rounded-xl bg-[#1A3C34] hover:bg-[#132A24] text-white font-bold text-xs sm:text-sm uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {paymentSubmitting ? (
                   <>

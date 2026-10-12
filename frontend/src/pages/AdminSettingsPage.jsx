@@ -337,7 +337,7 @@ export default function AdminSettingsPage() {
           type="button"
           onClick={fetchSettings}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-[#CCE3DE] hover:bg-[#F4F9F6] text-[#1A3C34] text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0 self-start sm:self-auto"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-[#DCE8E2] hover:bg-[#F4F9F6] text-[#1A3C34] text-xs font-bold transition-all cursor-pointer shadow-xs shrink-0 self-start sm:self-auto"
           title="Refresh All Settings"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -347,7 +347,7 @@ export default function AdminSettingsPage() {
 
       {/* Global Alerts */}
       {message && (
-        <div className="p-4 rounded-2xl bg-[#DCFCE7] border border-[#86EFAC] text-[#15803D] text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+        <div className="p-4 rounded-lg bg-[#DCFCE7] border border-[#86EFAC] text-[#15803D] text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
             <Check className="w-4 h-4 shrink-0" />
             <span>{message}</span>
@@ -359,7 +359,7 @@ export default function AdminSettingsPage() {
       )}
 
       {error && (
-        <div className="p-4 rounded-2xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+        <div className="p-4 rounded-lg bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs font-bold flex items-center justify-between shadow-xs animate-in fade-in">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
             <span>{error}</span>
@@ -373,8 +373,8 @@ export default function AdminSettingsPage() {
       {/* ======================================================================
           1. REGISTRATION QUOTA & FEE PARAMETERS
           ====================================================================== */}
-      <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#CCE3DE] shadow-sm space-y-6">
-        <div className="flex items-center justify-between gap-3 border-b border-[#CCE3DE]/70 pb-4">
+      <div className="bg-white p-6 sm:p-7 rounded-xl border border-[#DCE8E2] shadow-sm space-y-6">
+        <div className="flex items-center justify-between gap-3 border-b border-[#DCE8E2] pb-4">
           <h2 className="text-base sm:text-lg font-black text-[#1A3C34] flex items-center gap-2">
             <Settings className="w-5 h-5 text-[#15803D]" />
             <span>Registration Quota &amp; Fee Parameters</span>
@@ -443,7 +443,7 @@ export default function AdminSettingsPage() {
           </div>
 
           {/* Sub-Card: Registrations Toggle Switch */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] flex items-center justify-between gap-4">
+          <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] flex items-center justify-between gap-4">
             <div>
               <h3 className="text-sm font-black text-[#1A3C34]">Registrations</h3>
               <p className="text-xs text-[#3D6153] mt-0.5">
@@ -475,8 +475,8 @@ export default function AdminSettingsPage() {
       {/* ======================================================================
           2. PAYMENT QR CODES (MULTI-ACCOUNT & FAILOVER)
           ====================================================================== */}
-      <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#CCE3DE] shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#CCE3DE]/70 pb-4">
+      <div className="bg-white p-6 sm:p-7 rounded-xl border border-[#DCE8E2] shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#DCE8E2] pb-4">
           <div>
             <h2 className="text-base sm:text-lg font-black text-[#1A3C34] flex items-center gap-2">
               <QrCode className="w-5 h-5 text-[#15803D]" />
@@ -493,7 +493,7 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Sub-Card: Upload New Payment QR Code */}
-        <form onSubmit={handleUploadQrs} className="p-4 sm:p-5 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] space-y-4">
+        <form onSubmit={handleUploadQrs} className="p-4 sm:p-5 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] space-y-4">
           <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#15803D]">
             + UPLOAD NEW PAYMENT QR CODE
           </div>
@@ -562,7 +562,7 @@ export default function AdminSettingsPage() {
           </div>
 
           {qrList.length === 0 ? (
-            <div className="p-8 text-center text-xs text-[#6B9080] bg-[#F4F9F6] rounded-2xl border border-[#CCE3DE]">
+            <div className="p-8 text-center text-xs text-[#6B9080] bg-[#F8FAF9] rounded-lg border border-[#DCE8E2]">
               No payment QR codes configured yet. Upload a QR code above.
             </div>
           ) : (
@@ -573,7 +573,7 @@ export default function AdminSettingsPage() {
                 return (
                   <div
                     key={qr.id || idx}
-                    className="p-3.5 rounded-2xl bg-white border border-[#CCE3DE] shadow-xs space-y-3 flex flex-col justify-between"
+                    className="p-3.5 rounded-xl bg-white border border-[#DCE8E2] shadow-xs space-y-3 flex flex-col justify-between"
                   >
                     {/* Top Row: Title + Badge */}
                     <div className="flex items-center justify-between gap-2">
@@ -634,8 +634,8 @@ export default function AdminSettingsPage() {
       {/* ======================================================================
           3. OFFICIAL PARTICIPANT WHATSAPP GROUPS
           ====================================================================== */}
-      <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#CCE3DE] shadow-sm space-y-6">
-        <div className="border-b border-[#CCE3DE]/70 pb-4">
+      <div className="bg-white p-6 sm:p-7 rounded-xl border border-[#DCE8E2] shadow-sm space-y-6">
+        <div className="border-b border-[#DCE8E2] pb-4">
           <h2 className="text-base sm:text-lg font-black text-[#1A3C34] flex items-center gap-2">
             <Users className="w-5 h-5 text-[#15803D]" />
             <span>Official Participant WhatsApp Groups</span>
@@ -645,7 +645,7 @@ export default function AdminSettingsPage() {
         {/* List of Configured Groups */}
         <div className="space-y-3">
           {waGroups.length === 0 ? (
-            <div className="p-6 text-center text-xs text-[#6B9080] bg-[#F4F9F6] rounded-2xl border border-[#CCE3DE]">
+            <div className="p-6 text-center text-xs text-[#6B9080] bg-[#F4F9F6] rounded-lg border border-[#DCE8E2]">
               No WhatsApp groups added yet. Add an invite link below.
             </div>
           ) : (
@@ -655,7 +655,7 @@ export default function AdminSettingsPage() {
               return (
                 <div
                   key={g.id}
-                  className="p-3.5 sm:p-4 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+                  className="p-3.5 sm:p-4 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -751,7 +751,7 @@ export default function AdminSettingsPage() {
           ====================================================================== */}
       {editingQr && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-[#CCE3DE] p-6 max-w-md w-full space-y-4 shadow-2xl">
+          <div className="bg-white rounded-xl border border-[#DCE8E2] p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#CCE3DE] pb-3">
               <h3 className="font-bold text-base text-[#1A3C34]">Edit QR Code</h3>
               <button onClick={() => setEditingQr(null)} className="cursor-pointer text-[#6B9080] hover:text-[#1A3C34]">
@@ -807,7 +807,7 @@ export default function AdminSettingsPage() {
           ====================================================================== */}
       {editingWaGroup && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-[#CCE3DE] p-6 max-w-md w-full space-y-4 shadow-2xl">
+          <div className="bg-white rounded-xl border border-[#DCE8E2] p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#CCE3DE] pb-3">
               <h3 className="font-bold text-base text-[#1A3C34]">Edit WhatsApp Group</h3>
               <button onClick={() => setEditingWaGroup(null)} className="cursor-pointer text-[#6B9080] hover:text-[#1A3C34]">

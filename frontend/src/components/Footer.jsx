@@ -12,7 +12,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 md:gap-4">
         {/* Left: Brand Logo & Subtitle */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-black border border-white/20 flex items-center justify-center shadow-inner shrink-0 overflow-hidden">
+          <div className="w-9 h-9 rounded-full bg-black border border-white/20 flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
             <AgrigenLogo className="w-full h-full object-cover" />
           </div>
           <div className="flex items-center gap-2 flex-wrap">

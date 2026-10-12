@@ -16,7 +16,7 @@ const eventQuotaSchema = new mongoose.Schema(
     bookedSeats: {
       type: Number,
       required: true,
-      default: 372 // Base attendees
+      default: 0
     },
     whatsappLink: {
       type: String,

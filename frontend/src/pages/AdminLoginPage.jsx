@@ -72,12 +72,12 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white p-7 sm:p-9 rounded-[20px] border border-[#CCE3DE] shadow-xl space-y-6">
+        <div className="bg-white p-7 sm:p-9 rounded-xl border border-[#DCE8E2] shadow-sm space-y-6">
           <div className="text-center space-y-2">
-            <div className="w-16 h-16 mx-auto rounded-[18px] bg-black text-white flex items-center justify-center shadow-md overflow-hidden border border-black/10">
+            <div className="w-16 h-16 mx-auto rounded-xl bg-black text-white flex items-center justify-center shadow-sm overflow-hidden border border-black/10">
               <AgrigenLogo className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-2xl font-black text-[#1A3C34] tracking-tight">
+            <h1 className="text-2xl font-fraunces font-bold text-[#1A3C34] tracking-tight">
               AgriVerse Master Portal
             </h1>
             <p className="text-xs text-[#3D6153]">
@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
           </div>
 
           {error && (
-            <div className="p-3.5 rounded-[12px] bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-center gap-2.5">
+            <div className="p-3.5 rounded-lg bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 shrink-0 text-[#DC2626]" />
               <span>{error}</span>
             </div>
@@ -105,7 +105,7 @@ export default function AdminLoginPage() {
                   value={passkey}
                   onChange={(e) => setPasskey(e.target.value)}
                   placeholder="Enter passkey"
-                  className="w-full pl-10 pr-4 py-3 rounded-[12px] bg-[#F4F9F6] border border-[#CCE3DE] text-xs sm:text-sm text-[#1A3C34] font-mono tracking-widest outline-none focus:border-[#1A3C34] focus:bg-white transition-all shadow-inner"
+                  className="w-full pl-10 pr-4 py-3 rounded-lg bg-white border border-[#DCE8E2] text-xs sm:text-sm text-[#1A3C34] font-mono tracking-widest outline-none focus:border-[#1A3C34] transition-all"
                 />
                 <Key className="w-4 h-4 text-[#6B9080] absolute left-3.5 top-3.5 pointer-events-none" />
               </div>
@@ -114,7 +114,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 rounded-[12px] bg-[#1A3C34] hover:bg-[#132A24] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 px-4 rounded-lg bg-[#1A3C34] hover:bg-[#132A24] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <span>Authenticating Passkey...</span>

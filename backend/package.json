@@ -6,7 +6,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "nodemon server.js",
     "dev": "node --watch server.js"
   },
   "dependencies": {
@@ -19,6 +19,11 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.5",
-    "multer": "^2.4.0"
+    "multer": "^2.4.0",
+    "nodemon": "^3.1.14"
+  },
+  "overrides": {
+    "chokidar": "^4.0.3",
+    "uuid": "^11.1.1"
   }
 }

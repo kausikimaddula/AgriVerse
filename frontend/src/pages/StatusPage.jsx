@@ -147,7 +147,7 @@ export default function StatusPage() {
         {/* ======================================================================
             1. STATUS SEARCH / LOOKUP CARD
             ====================================================================== */}
-        <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#CCE3DE] shadow-xl space-y-6">
+        <div className="bg-white p-6 sm:p-10 rounded-xl border border-gray-200 shadow-sm space-y-6">
           <div className="text-center sm:text-left space-y-2 border-b border-[#CCE3DE] pb-6">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAF4F4] text-[#15803D] text-xs font-bold uppercase tracking-wider">
               <Search className="w-3.5 h-3.5" />
@@ -224,7 +224,7 @@ export default function StatusPage() {
 
           {/* Not Found Error Alert */}
           {statusError && (
-            <div className="p-4 rounded-2xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-start justify-between gap-3 animate-in fade-in">
+            <div className="p-4 rounded-lg bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-start justify-between gap-3 animate-in fade-in">
               <div className="flex items-start gap-2.5">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 text-[#DC2626] mt-0.5" />
                 <div className="space-y-1">
@@ -249,7 +249,7 @@ export default function StatusPage() {
             2. PASSPORT CARD & CONTEXTUAL STATUS DETAILS
             ====================================================================== */}
         {statusResult && (
-          <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#CCE3DE] shadow-xl space-y-6 animate-in fade-in">
+          <div className="bg-white p-6 sm:p-10 rounded-xl border border-gray-200 shadow-sm space-y-6 animate-in fade-in">
             {/* Header with Verification Status Badge */}
             <div className="border-b border-[#CCE3DE] pb-5 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -306,7 +306,7 @@ export default function StatusPage() {
 
               {/* REJECTION REASON BANNER (EXACT REQUIREMENT) */}
               {isRejected && (
-                <div className="p-4 rounded-2xl bg-[#FEE2E2] border-2 border-[#DC2626] text-[#991B1B] text-xs space-y-2">
+                <div className="p-4 rounded-xl bg-[#FEE2E2] border border-[#DC2626] text-[#991B1B] text-xs space-y-2">
                   <div className="flex items-center gap-2 font-bold text-sm text-[#DC2626]">
                     <AlertTriangle className="w-5 h-5 shrink-0" />
                     <span>Verification Issue:</span>
@@ -344,7 +344,7 @@ export default function StatusPage() {
               </div>
 
               {/* Identification Grid */}
-              <div className="p-5 sm:p-6 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+              <div className="p-5 sm:p-6 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
                 {/* Full Name */}
                 <div className="space-y-0.5">
                   <span className="text-[10px] uppercase font-bold text-[#6B9080] block">
@@ -428,7 +428,7 @@ export default function StatusPage() {
 
               {/* Entrance QR Token & ID Card CTA for Verified Attendees */}
               {isVerified && (
-                <div className="p-5 rounded-2xl bg-[#DCFCE7]/40 border-2 border-[#15803D] flex flex-col sm:flex-row items-center gap-5">
+                <div className="p-5 rounded-xl bg-[#DCFCE7]/40 border border-[#15803D] flex flex-col sm:flex-row items-center gap-5">
                   {passportQrUrl && (
                     <div className="p-2.5 rounded-xl bg-white border border-[#15803D]/30 shadow-xs shrink-0">
                       <img
@@ -466,7 +466,7 @@ export default function StatusPage() {
 
               {/* Uploaded Screenshot Proof Preview for Pending Audits */}
               {isPending && statusResult.paymentScreenshot?.url && (
-                <div className="p-4 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] flex items-center justify-between gap-3 text-xs">
+                <div className="p-4 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-3">
                     <FileImage className="w-5 h-5 text-[#15803D] shrink-0" />
                     <div>
@@ -494,7 +494,7 @@ export default function StatusPage() {
             {/* ======================================================================
                 3. OFFICIAL WHATSAPP GROUP CARDS
                 ====================================================================== */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[#EAF4F4] border border-[#CCE3DE] space-y-3">
+            <div className="p-5 sm:p-6 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#DCFCE7] text-[#15803D] text-[10px] font-bold uppercase">
@@ -522,7 +522,7 @@ export default function StatusPage() {
 
             {/* Pay Now Option for Unpaid Registrations */}
             {isUnpaid && (
-              <div className="p-5 rounded-2xl bg-[#FEF3C7]/40 border-2 border-[#D97706] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-5 rounded-xl bg-[#FEF3C7]/40 border border-[#D97706] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-[#1A3C34]">
                     Complete Your ₹350 Fee Payment

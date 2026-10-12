@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 import Registration from './models/Registration.js';
 import Subscriber from './models/Subscriber.js';
@@ -16,24 +17,24 @@ import EventSettings from './models/EventSettings.js';
 import Admin from './models/Admin.js';
 import { authenticateToken, generateToken } from './middleware/auth.js';
 import { cacheMiddleware, memoryCache } from './middleware/cache.js';
-import { upload, processAndStoreProof, deleteStoredAsset } from './utils/storage.js';
+import { upload, processAndStoreProof, uploadToCloudinary, deleteStoredAsset } from './utils/storage.js';
 import { streamRegistrationsExcel } from './utils/excel.js';
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config();
+
 const app = express();
-const PORT = process.env.PORT || 5000;
-const DB_FILE = path.join(__dirname, 'data', 'registrations.json');
-const NEWS_FILE = path.join(__dirname, 'data', 'subscribers.json');
+app.disable('x-powered-by');
+const PORT = process.env.PORT;
 const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
 
-// Ensure data and uploads dirs exist
-[path.join(__dirname, 'data'), UPLOADS_DIR].forEach((dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 // --- 1. HELMET SECURITY & STRICT CORS POLICY ---
 app.use(
@@ -75,8 +76,28 @@ app.use('/uploads', express.static(UPLOADS_DIR));
 // State variable tracking MongoDB connection
 let isMongoConnected = false;
 
-// Connect to MongoDB & Seed
+// Connect to MongoDB
 const mongoUri = process.env.MONGODB_URI || process.env.mongodb || process.env.MONGO_URI;
+
+export async function ensureDbConnected() {
+  if (mongoose.connection.readyState === 1) {
+    isMongoConnected = true;
+    return true;
+  }
+  if (!mongoUri || mongoUri.trim() === '') {
+    throw new Error('MONGODB_URI is not configured in .env. A MongoDB connection is strictly required.');
+  }
+  await mongoose.connect(mongoUri, {
+    maxPoolSize: 300,
+    minPoolSize: 30,
+    maxIdleTimeMS: 60000,
+    socketTimeoutMS: 45000,
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10000
+  });
+  isMongoConnected = true;
+  return true;
+}
 
 if (mongoUri && mongoUri.trim() !== '') {
   mongoose
@@ -90,27 +111,33 @@ if (mongoUri && mongoUri.trim() !== '') {
     })
     .then(async () => {
       isMongoConnected = true;
-      console.log('🌱 Connected to MongoDB successfully!');
+      console.log('Connected to MongoDB database successfully!');
       await initMongoDefaults();
     })
     .catch((err) => {
       isMongoConnected = false;
-      console.warn('⚠️  MongoDB connection error (operating in JSON fallback mode):', err.message);
-      console.info('💡 Update MONGODB_URI in backend/.env with your MongoDB Atlas or local URI.');
+      console.error('MongoDB database connection error:', err.message);
     });
 } else {
-  console.info('ℹ️  No MONGODB_URI in .env. Running in local JSON storage mode with full feature parity.');
+  console.error('CRITICAL: No MONGODB_URI found in environment. Database connection required.');
 }
+
+mongoose.connection.on('connected', () => { isMongoConnected = true; });
+mongoose.connection.on('disconnected', () => { isMongoConnected = false; });
+mongoose.connection.on('error', (err) => { isMongoConnected = false; console.error('MongoDB connection error:', err.message); });
 
 async function initMongoDefaults() {
   try {
     // 1. Initialize Event Quota if needed
     const existingQuota = await EventQuota.findOne({ code: 'AGRIVERSE_2026' });
     if (!existingQuota) {
-      await EventQuota.create({ code: 'AGRIVERSE_2026', totalSeats: 500, bookedSeats: 372 });
+      await EventQuota.create({ code: 'AGRIVERSE_2026', totalSeats: 500, bookedSeats: 0 });
     }
 
-    // 2. Seed Default Admin
+    // 2. Initialize Event Settings if needed
+    await getFullEventSettings();
+
+    // 3. Seed Default Admin
     const existingAdmin = await Admin.findOne({ email: 'admin@agriverse.org' });
     if (!existingAdmin) {
       await Admin.create({
@@ -119,41 +146,20 @@ async function initMongoDefaults() {
         password: 'AgriVerse@2026',
         role: 'superadmin'
       });
-      console.log('🛡️  Admin account ready: admin@agriverse.org / AgriVerse@2026');
+      console.log('Admin account ready: admin@agriverse.org / AgriVerse@2026');
     }
   } catch (err) {
     console.warn('Initialization note:', err.message);
   }
 }
 
-// Fallback JSON Helpers
-function readJson(filePath, defaultValue = []) {
-  try {
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2));
-      return defaultValue;
-    }
-    const data = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (err) {
-    return defaultValue;
-  }
-}
-
-function writeJson(filePath, data) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-  } catch (err) {}
-}
-
-const SETTINGS_FILE = path.join(__dirname, 'data', 'settings.json');
 const defaultSettings = {
   whatsappLink: 'https://chat.whatsapp.com/invite/AgriVerseUECourse2026',
   totalSeats: 500,
-  bookedSeats: 372
+  bookedSeats: 0
 };
 
-// Sequential mutex to ensure zero race conditions on high concurrency bursts in JSON mode
+// Sequential mutex to ensure zero race conditions on high concurrency bursts
 class ConcurrencyMutex {
   constructor() {
     this.queue = Promise.resolve();
@@ -176,30 +182,22 @@ class ConcurrencyMutex {
 const storageMutex = new ConcurrencyMutex();
 
 async function getSystemSettings() {
-  if (isMongoConnected) {
-    let quota = await EventQuota.findOne({ code: 'AGRIVERSE_2026' });
-    if (!quota) {
-      quota = await EventQuota.create({
-        code: 'AGRIVERSE_2026',
-        totalSeats: 500,
-        bookedSeats: 372,
-        whatsappLink: defaultSettings.whatsappLink
-      });
-    }
-    return {
-      whatsappLink: quota.whatsappLink || defaultSettings.whatsappLink,
-      totalSeats: quota.totalSeats || 500,
-      bookedSeats: quota.bookedSeats || 372
-    };
-  } else {
-    const current = readJson(SETTINGS_FILE, defaultSettings);
-    const registrations = readJson(DB_FILE, []);
-    return {
-      whatsappLink: current.whatsappLink || defaultSettings.whatsappLink,
-      totalSeats: current.totalSeats || 500,
-      bookedSeats: 372 + registrations.length
-    };
+  await ensureDbConnected();
+  let quota = await EventQuota.findOne({ code: 'AGRIVERSE_2026' });
+  const count = await Registration.countDocuments();
+  if (!quota) {
+    quota = await EventQuota.create({
+      code: 'AGRIVERSE_2026',
+      totalSeats: 500,
+      bookedSeats: count,
+      whatsappLink: defaultSettings.whatsappLink
+    });
   }
+  return {
+    whatsappLink: quota.whatsappLink || defaultSettings.whatsappLink,
+    totalSeats: quota.totalSeats || 500,
+    bookedSeats: count
+  };
 }
 
 // --- API ROUTES ---
@@ -245,14 +243,9 @@ app.get(
   cacheMiddleware(1500),
   async (req, res) => {
     try {
+      await ensureDbConnected();
       const settings = await getFullEventSettings();
-      let registeredCount = 0;
-      if (isMongoConnected) {
-        registeredCount = await Registration.countDocuments();
-      } else {
-        const registrations = readJson(DB_FILE, []);
-        registeredCount = registrations.length;
-      }
+      const registeredCount = await Registration.countDocuments();
 
       const limit = Number(settings.registrationLimit || settings.totalSeats || 150);
       const fee = Number(settings.registrationFee !== undefined ? settings.registrationFee : (settings.fee !== undefined ? settings.fee : 0));
@@ -311,14 +304,9 @@ app.get(
   ],
   async (req, res) => {
     try {
+      await ensureDbConnected();
       const settings = await getFullEventSettings();
-      let registeredCount = 0;
-      if (isMongoConnected) {
-        registeredCount = await Registration.countDocuments();
-      } else {
-        const registrations = readJson(DB_FILE, []);
-        registeredCount = registrations.length;
-      }
+      const registeredCount = await Registration.countDocuments();
 
       const limit = Number(settings.registrationLimit || settings.totalSeats || 150);
       const isRegOpen = settings.registrationOpen !== false && settings.isOpen !== false;
@@ -375,87 +363,42 @@ app.post(['/api/v1/registrations/check', '/api/registrations/check'], async (req
       phone: { available: true, message: 'Available ✓' }
     };
 
-    if (isMongoConnected) {
-      if (checkRegNo) {
-        const found = await Registration.findOne({
-          $or: [{ registerNumber: checkRegNo }, { regNo: checkRegNo }, { registrationId: checkRegNo }]
-        });
-        if (found) {
-          errors.registerNumber = 'This Register Number is already registered.';
-          result.registerNumber = { available: false, message: 'Already Registered ✕' };
-          result.available = false;
-          result.isAvailable = false;
-        }
-      }
-      if (checkEmail) {
-        const found = await Registration.findOne({ email: checkEmail });
-        if (found) {
-          errors.email = 'This Email address is already registered.';
-          result.email = { available: false, message: 'Already Registered ✕' };
-          result.available = false;
-          result.isAvailable = false;
-        }
-      }
-      if (checkPhone && checkPhone.length >= 10) {
-        const found = await Registration.findOne({ phone: checkPhone });
-        if (found) {
-          errors.phone = 'This Phone number is already registered.';
-          result.phone = { available: false, message: 'Already Registered ✕' };
-          result.available = false;
-          result.isAvailable = false;
-        }
-      }
-      if (checkTxnId && checkTxnId.length >= 4) {
-        const found = await Registration.findOne({
-          $or: [{ transactionId: checkTxnId }, { txnId: checkTxnId }]
-        });
-        if (found) {
-          errors.transactionId = 'This Transaction ID has already been submitted.';
-          result.available = false;
-          result.isAvailable = false;
-        }
-      }
-    } else {
-      const registrations = readJson(DB_FILE, []);
-      if (
-        checkRegNo &&
-        registrations.some(
-          (r) =>
-            (r.registerNumber && r.registerNumber.toUpperCase() === checkRegNo) ||
-            (r.regNo && r.regNo.toUpperCase() === checkRegNo) ||
-            (r.registrationId && r.registrationId.toUpperCase() === checkRegNo)
-        )
-      ) {
+    await ensureDbConnected();
+
+    if (checkRegNo) {
+      const found = await Registration.findOne({
+        $or: [{ registerNumber: checkRegNo }, { regNo: checkRegNo }, { registrationId: checkRegNo }]
+      });
+      if (found) {
         errors.registerNumber = 'This Register Number is already registered.';
         result.registerNumber = { available: false, message: 'Already Registered ✕' };
         result.available = false;
         result.isAvailable = false;
       }
-      if (checkEmail && registrations.some((r) => r.email && r.email.toLowerCase() === checkEmail)) {
+    }
+    if (checkEmail) {
+      const found = await Registration.findOne({ email: checkEmail });
+      if (found) {
         errors.email = 'This Email address is already registered.';
         result.email = { available: false, message: 'Already Registered ✕' };
         result.available = false;
         result.isAvailable = false;
       }
-      if (
-        checkPhone &&
-        checkPhone.length >= 10 &&
-        registrations.some((r) => r.phone && r.phone.replace(/[\s\-\+]/g, '') === checkPhone)
-      ) {
+    }
+    if (checkPhone && checkPhone.length >= 10) {
+      const found = await Registration.findOne({ phone: checkPhone });
+      if (found) {
         errors.phone = 'This Phone number is already registered.';
         result.phone = { available: false, message: 'Already Registered ✕' };
         result.available = false;
         result.isAvailable = false;
       }
-      if (
-        checkTxnId &&
-        checkTxnId.length >= 4 &&
-        registrations.some(
-          (r) =>
-            (r.transactionId && r.transactionId.toUpperCase() === checkTxnId) ||
-            (r.txnId && r.txnId.toUpperCase() === checkTxnId)
-        )
-      ) {
+    }
+    if (checkTxnId && checkTxnId.length >= 4) {
+      const found = await Registration.findOne({
+        $or: [{ transactionId: checkTxnId }, { txnId: checkTxnId }]
+      });
+      if (found) {
         errors.transactionId = 'This Transaction ID has already been submitted.';
         result.available = false;
         result.isAvailable = false;
@@ -540,7 +483,7 @@ app.post(
         }));
 
       // Atomic Slot Claim & Persistence
-      if (isMongoConnected) {
+      await ensureDbConnected();
         // 1. Duplicate check
         const existing = await Registration.findOne({
           $or: [
@@ -671,139 +614,6 @@ app.post(
           registrationId: cleanRegNo,
           step: 2
         });
-      } else {
-        let conflictErr = null;
-        let capacityFull = false;
-        let closedErr = false;
-        let createdRec = null;
-
-        await storageMutex.dispatch(async () => {
-          const registrations = readJson(DB_FILE, []);
-          const currentSettings = readJson(SETTINGS_FILE, defaultSettings);
-
-          const isCurrentRegOpen = currentSettings.registrationOpen !== false && currentSettings.isOpen !== false;
-          if (!isCurrentRegOpen) {
-            closedErr = true;
-            return;
-          }
-
-          const existingIdx = registrations.findIndex(
-            (r) =>
-              r.regNo?.toUpperCase() === cleanRegNo ||
-              r.registerNumber?.toUpperCase() === cleanRegNo ||
-              r.registrationId?.toUpperCase() === cleanRegNo
-          );
-
-          if (existingIdx !== -1) {
-            const existing = registrations[existingIdx];
-            if (existing.paymentStatus === 'UNPAID' || existing.status === 'PENDING_PAYMENT') {
-              existing.name = cleanName;
-              existing.fullName = cleanName;
-              existing.email = cleanEmail;
-              existing.phone = cleanPhone;
-              existing.branch = cleanDept;
-              existing.department = cleanDept;
-              existing.section = cleanSection;
-              existing.year = cleanYear;
-              existing.academicYear = cleanYear;
-              existing.gender = cleanGender;
-              existing.residency = cleanResidency;
-              existing.residencyStatus = cleanResidency;
-              writeJson(DB_FILE, registrations);
-              createdRec = existing;
-              return;
-            }
-            conflictErr = `Register Number (${cleanRegNo}) is already registered.`;
-            return;
-          }
-
-          if (registrations.some((r) => r.email?.toLowerCase() === cleanEmail)) {
-            conflictErr = `Academic Email (${cleanEmail}) is already registered.`;
-            return;
-          }
-          if (registrations.some((r) => r.phone?.replace(/[\s\-\+]/g, '') === cleanPhone)) {
-            conflictErr = `Mobile number (${cleanPhone}) is already registered.`;
-            return;
-          }
-
-          const currentTotal = registrations.length;
-          const maxLimit = Number(currentSettings.registrationLimit || currentSettings.totalSeats || 250);
-          if (currentTotal >= maxLimit) {
-            capacityFull = true;
-            return;
-          }
-
-          const randomHex = Math.floor(1000 + Math.random() * 9000);
-          const passId = `AGRI-2026-${randomHex}`;
-
-          createdRec = {
-            id: passId,
-            registrationId: cleanRegNo,
-            name: cleanName,
-            fullName: cleanName,
-            regNo: cleanRegNo,
-            registerNumber: cleanRegNo,
-            email: cleanEmail,
-            phone: cleanPhone,
-            branch: cleanDept,
-            department: cleanDept,
-            section: cleanSection,
-            year: cleanYear,
-            academicYear: cleanYear,
-            gender: cleanGender,
-            residency: cleanResidency,
-            residencyStatus: cleanResidency,
-            college: 'KLU / AgriGen Campus',
-            paymentStatus: 'UNPAID',
-            verificationStatus: 'PENDING',
-            status: 'PENDING_PAYMENT',
-            paymentMode: 'PAY_LATER',
-            adminNotes: 'Student profile registered in Workflow A. Awaiting payment.',
-            createdAt: new Date().toISOString()
-          };
-
-          registrations.push(createdRec);
-          writeJson(DB_FILE, registrations);
-        });
-
-        if (conflictErr) {
-          return res.status(409).json({ error: conflictErr });
-        }
-        if (closedErr) {
-          return res.status(403).json({
-            error: 'Registrations are currently closed by the administrator.',
-            code: 'REGISTRATIONS_CLOSED'
-          });
-        }
-        if (capacityFull) {
-          return res.status(403).json({
-            error: 'Registration limit reached. Capacity full.',
-            code: 'CAPACITY_FULL'
-          });
-        }
-
-        memoryCache.invalidate('stats');
-
-        return res.status(201).json({
-          success: true,
-          message: 'Registration completed successfully! Your payment is unpaid and verification is pending.',
-          registration: {
-            ...createdRec,
-            registrationId: cleanRegNo,
-            fullName: cleanName,
-            registerNumber: cleanRegNo,
-            paymentStatus: 'UNPAID',
-            verificationStatus: 'PENDING'
-          },
-          event: {
-            registrationFee: fee,
-            qrCodes: activeQrs
-          },
-          whatsappGroups: activeWaGroups,
-          registrationId: cleanRegNo,
-          step: 2
-        });
-      }
     } catch (err) {
       res.status(500).json({ error: 'Failed to register student profile: ' + err.message });
     }
@@ -894,7 +704,10 @@ app.post(
       }
 
       const file = req.files?.paymentScreenshot?.[0] || req.files?.idProof?.[0] || req.file;
-      if (!file) {
+      const base64Proof = req.body?.paymentScreenshot || req.body?.idProof;
+      const proofInput = file ? file.buffer : (typeof base64Proof === 'string' && base64Proof.startsWith('data:image') ? base64Proof : null);
+
+      if (!proofInput) {
         return res.status(400).json({
           error: 'Please upload your UPI payment confirmation screenshot (.jpg, .png, .webp up to 10MB).'
         });
@@ -910,7 +723,7 @@ app.post(
         }));
 
       // Check unique transaction ID across all registrations
-      if (isMongoConnected) {
+      await ensureDbConnected();
         const existingTxn = await Registration.findOne({
           $or: [{ txnId: cleanTxnId }, { transactionId: cleanTxnId }],
           $nor: [{ regNo: lookupId }, { id: lookupId }, { registrationId: lookupId }, { registerNumber: lookupId }]
@@ -937,10 +750,11 @@ app.post(
         }
 
         const proofData = await processAndStoreProof(
-          file.buffer,
-          file.originalname,
-          file.mimetype,
-          record.id || record.registrationId
+          proofInput,
+          file?.originalname || 'payment_proof.jpg',
+          file?.mimetype || 'image/jpeg',
+          record.id || record.registrationId,
+          'payment_screenshots'
         );
 
         if (req.body.fullName || req.body.name) {
@@ -998,93 +812,6 @@ app.post(
           },
           whatsappGroups: activeWaGroups
         });
-      } else {
-        let conflictErr = null;
-        let notFoundErr = false;
-        let updatedRecord = null;
-
-        await storageMutex.dispatch(async () => {
-          const registrations = readJson(DB_FILE, []);
-
-          const duplicate = registrations.find(
-            (r) =>
-              ((r.txnId && r.txnId.toUpperCase() === cleanTxnId) ||
-                (r.transactionId && r.transactionId.toUpperCase() === cleanTxnId)) &&
-              r.regNo?.toUpperCase() !== lookupId &&
-              r.registrationId?.toUpperCase() !== lookupId &&
-              r.id?.toUpperCase() !== lookupId
-          );
-          if (duplicate) {
-            conflictErr = `UPI Reference ID (${cleanTxnId}) has already been submitted by another attendee.`;
-            return;
-          }
-
-          const idx = registrations.findIndex(
-            (r) =>
-              (r.regNo && r.regNo.toUpperCase() === lookupId) ||
-              (r.registrationId && r.registrationId.toUpperCase() === lookupId) ||
-              (r.id && r.id.toUpperCase() === lookupId)
-          );
-
-          if (idx === -1) {
-            notFoundErr = true;
-            return;
-          }
-
-          const proofData = await processAndStoreProof(
-            file.buffer,
-            file.originalname,
-            file.mimetype,
-            registrations[idx].id || registrations[idx].registrationId
-          );
-
-          registrations[idx].paymentStatus = 'PAID';
-          registrations[idx].status = 'PENDING_AUDIT';
-          registrations[idx].verificationStatus = 'PENDING';
-          registrations[idx].transactionId = cleanTxnId;
-          registrations[idx].txnId = cleanTxnId;
-          registrations[idx].paymentScreenshot = {
-            url: proofData.proofUrl,
-            publicId: proofData.publicId,
-            storageProvider: proofData.storageProvider
-          };
-          registrations[idx].proofUrl = proofData.proofUrl;
-          registrations[idx].proofPublicId = proofData.publicId;
-          registrations[idx].storageProvider = proofData.storageProvider;
-          registrations[idx].paymentDate = new Date().toISOString();
-          registrations[idx].joinedWhatsapp = (joinedWhatsapp || 'Yes').trim();
-          registrations[idx].adminNotes = 'Payment proof submitted via Workflow B. Placed in organizer audit queue.';
-
-          writeJson(DB_FILE, registrations);
-          updatedRecord = registrations[idx];
-        });
-
-        if (conflictErr) {
-          return res.status(409).json({ error: conflictErr });
-        }
-        if (notFoundErr) {
-          return res.status(404).json({ error: `Registration record not found for ${lookupId}.` });
-        }
-
-        memoryCache.invalidate('stats');
-
-        return res.json({
-          success: true,
-          message: 'Payment submitted successfully! Your payment is paid and verification is pending.',
-          registration: {
-            id: updatedRecord.id || updatedRecord.registrationId,
-            registrationId: updatedRecord.registrationId || updatedRecord.registerNumber || updatedRecord.regNo,
-            fullName: updatedRecord.fullName || updatedRecord.name,
-            registerNumber: updatedRecord.registerNumber || updatedRecord.regNo,
-            paymentStatus: 'PAID',
-            verificationStatus: 'PENDING',
-            transactionId: cleanTxnId,
-            proofUrl: updatedRecord.proofUrl,
-            paymentScreenshot: updatedRecord.paymentScreenshot
-          },
-          whatsappGroups: activeWaGroups
-        });
-      }
     } catch (err) {
       res.status(500).json({ error: 'Failed to process payment proof: ' + err.message });
     }
@@ -1094,21 +821,11 @@ app.post(
 // B3. Retrieve Registration by registrationId (For Success Page & Verification Badge)
 app.get(['/api/v1/registrations/:id', '/api/registrations/:id'], async (req, res) => {
   try {
+    await ensureDbConnected();
     const key = (req.params.id || '').trim().toUpperCase();
-    let record = null;
-    if (isMongoConnected) {
-      record = await Registration.findOne({
-        $or: [{ registrationId: key }, { regNo: key }, { id: key }]
-      });
-    } else {
-      const list = readJson(DB_FILE, []);
-      record = list.find(
-        (r) =>
-          r.registrationId?.toUpperCase() === key ||
-          r.regNo?.toUpperCase() === key ||
-          r.id?.toUpperCase() === key
-      );
-    }
+    const record = await Registration.findOne({
+      $or: [{ registrationId: key }, { regNo: key }, { id: key }]
+    });
 
     if (!record) {
       return res.status(404).json({ error: 'Registration record not found.' });
@@ -1126,6 +843,7 @@ app.get(['/api/v1/registrations/:id', '/api/registrations/:id'], async (req, res
 // 6. Lookup Participant for Deferred Payment (Alias for individual participant lookup)
 app.post(['/api/v1/registrations/lookup-team', '/api/registrations/lookup-team'], async (req, res) => {
   try {
+    await ensureDbConnected();
     const { identifier, query, registrationId, registerNumber, regNo } = req.body;
     const lookupKey = (identifier || query || registrationId || registerNumber || regNo || '').trim().toUpperCase();
 
@@ -1136,30 +854,16 @@ app.post(['/api/v1/registrations/lookup-team', '/api/registrations/lookup-team']
       });
     }
 
-    let record = null;
-    if (isMongoConnected) {
-      record = await Registration.findOne({
-        $or: [
-          { registrationId: lookupKey },
-          { registerNumber: lookupKey },
-          { regNo: lookupKey },
-          { id: lookupKey },
-          { email: lookupKey.toLowerCase() },
-          { phone: lookupKey.replace(/\D/g, '') }
-        ]
-      });
-    } else {
-      const list = readJson(DB_FILE, []);
-      record = list.find(
-        (r) =>
-          r.registrationId?.toUpperCase() === lookupKey ||
-          r.registerNumber?.toUpperCase() === lookupKey ||
-          r.regNo?.toUpperCase() === lookupKey ||
-          r.id?.toUpperCase() === lookupKey ||
-          r.email?.toLowerCase() === lookupKey.toLowerCase() ||
-          r.phone?.replace(/\D/g, '') === lookupKey.replace(/\D/g, '')
-      );
-    }
+    const record = await Registration.findOne({
+      $or: [
+        { registrationId: lookupKey },
+        { registerNumber: lookupKey },
+        { regNo: lookupKey },
+        { id: lookupKey },
+        { email: lookupKey.toLowerCase() },
+        { phone: lookupKey.replace(/\D/g, '') }
+      ]
+    });
 
     if (!record) {
       return res.status(404).json({
@@ -1209,27 +913,12 @@ app.post(['/api/v1/registrations/lookup-team', '/api/registrations/lookup-team']
 // 2. Event Statistics (With In-Memory Response Caching: 2.0s TTL to protect DB)
 app.get('/api/stats', cacheMiddleware(2000), async (req, res) => {
   try {
-    let count = 0;
-    let recent = [];
-    let maxSeats = 250;
-    let totalFilled = 0;
-
-    if (isMongoConnected) {
-      count = await Registration.countDocuments();
-      recent = await Registration.find().sort({ createdAt: -1 }).limit(5);
-      const quota = await EventQuota.findOne({ code: 'AGRIVERSE_2026' });
-      if (quota) {
-        maxSeats = quota.totalSeats;
-        totalFilled = count;
-      } else {
-        totalFilled = count;
-      }
-    } else {
-      const registrations = readJson(DB_FILE, []);
-      count = registrations.length;
-      recent = registrations.slice(-5).reverse();
-      totalFilled = count;
-    }
+    await ensureDbConnected();
+    const count = await Registration.countDocuments();
+    const recent = await Registration.find().sort({ createdAt: -1 }).limit(5);
+    const quota = await EventQuota.findOne({ code: 'AGRIVERSE_2026' });
+    const maxSeats = quota?.totalSeats || 250;
+    const totalFilled = count;
 
     const seatsRemaining = Math.max(0, maxSeats - totalFilled);
     const percentFilled = Math.min(100, (totalFilled / maxSeats) * 100).toFixed(1);
@@ -1239,7 +928,7 @@ app.get('/api/stats', cacheMiddleware(2000), async (req, res) => {
       maxSeats,
       seatsRemaining,
       percentFilled,
-      database: isMongoConnected ? 'mongodb' : 'json',
+      database: 'mongodb',
       serverNode: process.env.NODE_ID || `node-${PORT}`,
       cachedAt: new Date().toISOString(),
       recentRegistrations: recent
@@ -1315,91 +1004,59 @@ app.post('/api/register', upload.single('idProof'), async (req, res) => {
     const cleanTxnId = !isPayLater && txnId ? txnId.trim().toUpperCase() : null;
 
     // --- DUPLICATE PREVENTION: STRICT IMMEDIATE VERIFICATION ---
-    if (isMongoConnected) {
-      // 1. Check RegNo Duplicate
-      const regDup = await Registration.findOne({ regNo: cleanRegNo });
-      if (regDup) {
-        return res.status(409).json({ error: `Registration Number (${cleanRegNo}) is already registered.` });
-      }
+    await ensureDbConnected();
 
-      // 2. Check Mobile Duplicate
-      const phoneDup = await Registration.findOne({ phone: cleanPhone });
-      if (phoneDup) {
-        return res.status(409).json({ error: `Mobile number (${cleanPhone}) is already registered.` });
-      }
+    // 1. Check RegNo Duplicate
+    const regDup = await Registration.findOne({ regNo: cleanRegNo });
+    if (regDup) {
+      return res.status(409).json({ error: `Registration Number (${cleanRegNo}) is already registered.` });
+    }
 
-      // 3. Check Academic Email Duplicate
-      const emailDup = await Registration.findOne({ email: cleanEmail });
-      if (emailDup) {
-        return res.status(409).json({ error: `Academic email (${cleanEmail}) is already registered.` });
-      }
+    // 2. Check Mobile Duplicate
+    const phoneDup = await Registration.findOne({ phone: cleanPhone });
+    if (phoneDup) {
+      return res.status(409).json({ error: `Mobile number (${cleanPhone}) is already registered.` });
+    }
 
-      // 4. Check Reused UPI Transaction ID Duplicate
-      if (cleanTxnId) {
-        const txnDup = await Registration.findOne({ txnId: cleanTxnId });
-        if (txnDup) {
-          return res.status(409).json({
-            error: `UPI Transaction Reference ID (${cleanTxnId}) has already been used by another registration.`
-          });
-        }
-      }
+    // 3. Check Academic Email Duplicate
+    const emailDup = await Registration.findOne({ email: cleanEmail });
+    if (emailDup) {
+      return res.status(409).json({ error: `Academic email (${cleanEmail}) is already registered.` });
+    }
 
-      // --- ATOMIC $expr SEAT ALLOTMENT GATE (HIGH CONCURRENCY) ---
-      const seatReservation = await EventQuota.reserveSeatAtomic('AGRIVERSE_2026');
-      if (!seatReservation.success) {
+    // 4. Check Reused UPI Transaction ID Duplicate
+    if (cleanTxnId) {
+      const txnDup = await Registration.findOne({ txnId: cleanTxnId });
+      if (txnDup) {
         return res.status(409).json({
-          error: 'Registration closed! All seats have been allotted.'
+          error: `UPI Transaction Reference ID (${cleanTxnId}) has already been used by another registration.`
         });
       }
-    } else {
-      // Local JSON duplicate check & seat gate with Concurrency Mutex
-      const checkResult = await storageMutex.dispatch(async () => {
-        const registrations = readJson(DB_FILE, []);
-        
-        // 1. RegNo
-        if (registrations.some((r) => r.regNo && r.regNo.toUpperCase() === cleanRegNo)) {
-          return { error: `Registration Number (${cleanRegNo}) is already registered.`, status: 409 };
-        }
-        // 2. Mobile
-        if (registrations.some((r) => r.phone && r.phone.replace(/[\s\-\+]/g, '') === cleanPhone)) {
-          return { error: `Mobile number (${cleanPhone}) is already registered.`, status: 409 };
-        }
-        // 3. Email
-        if (registrations.some((r) => r.email && r.email.toLowerCase() === cleanEmail)) {
-          return { error: `Academic email (${cleanEmail}) is already registered.`, status: 409 };
-        }
-        // 4. Reused UPI Txn ID
-        if (cleanTxnId && registrations.some((r) => r.txnId && r.txnId.toUpperCase() === cleanTxnId)) {
-          return {
-            error: `UPI Transaction Reference ID (${cleanTxnId}) has already been used by another registration.`,
-            status: 409
-          };
-        }
+    }
 
-        const totalCurrent = registrations.length;
-        if (totalCurrent >= 250) {
-          return { error: 'Registration closed! All seats have been allotted.', status: 409 };
-        }
-        return { success: true };
+    // --- ATOMIC $expr SEAT ALLOTMENT GATE (HIGH CONCURRENCY) ---
+    const seatReservation = await EventQuota.reserveSeatAtomic('AGRIVERSE_2026');
+    if (!seatReservation.success) {
+      return res.status(409).json({
+        error: 'Registration closed! All seats have been allotted.'
       });
-
-      if (checkResult.error) {
-        return res.status(checkResult.status).json({ error: checkResult.error });
-      }
     }
 
     // Generate unique Pass ID
     const randomHex = Math.floor(1000 + Math.random() * 9000);
     const passId = `AGRI-2026-${randomHex}`;
 
-    // Process Memory Buffer Upload (Cloudinary CDN or Local Disk fallback) if provided
+    // Process Cloudinary Upload (Images stored in Cloudinary CDN, URLs in MongoDB) if provided
     let proofData = { proofUrl: null, storageProvider: 'none', publicId: null };
-    if (!isPayLater && req.file) {
+    const base64Proof = req.body?.idProof || req.body?.paymentScreenshot;
+    const proofInput = req.file ? req.file.buffer : (typeof base64Proof === 'string' && base64Proof.startsWith('data:image') ? base64Proof : null);
+    if (!isPayLater && proofInput) {
       proofData = await processAndStoreProof(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype,
-        passId
+        proofInput,
+        req.file?.originalname || 'payment_proof.jpg',
+        req.file?.mimetype || 'image/jpeg',
+        passId,
+        'payment_screenshots'
       );
     }
 
@@ -1445,16 +1102,8 @@ app.post('/api/register', upload.single('idProof'), async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    if (isMongoConnected) {
-      const doc = new Registration(newRecord);
-      await doc.save();
-    } else {
-      await storageMutex.dispatch(async () => {
-        const registrations = readJson(DB_FILE, []);
-        registrations.push(newRecord);
-        writeJson(DB_FILE, registrations);
-      });
-    }
+    const doc = new Registration(newRecord);
+    await doc.save();
 
     // Invalidate Stats Cache immediately so next query gets fresh data
     memoryCache.invalidate('stats');
@@ -1475,15 +1124,51 @@ app.post('/api/register', upload.single('idProof'), async (req, res) => {
   }
 });
 
+// In-memory brute-force rate limiter for authentication endpoints
+const loginRateLimitMap = new Map();
+function loginRateLimiter(req, res, next) {
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000; // 15 minute window
+  const maxAttempts = 15; // Max 15 attempts per IP per 15 mins
+
+  let record = loginRateLimitMap.get(ip);
+  if (!record || (now - record.firstAttempt > windowMs)) {
+    record = { count: 1, firstAttempt: now };
+    loginRateLimitMap.set(ip, record);
+    return next();
+  }
+
+  if (record.count >= maxAttempts) {
+    const minutesLeft = Math.ceil((windowMs - (now - record.firstAttempt)) / 60000);
+    return res.status(429).json({
+      error: `Too many login attempts from this IP. Please try again in ${minutesLeft} minute(s).`
+    });
+  }
+
+  record.count += 1;
+  next();
+}
+
+function safeCompareStrings(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a.trim());
+  const bufB = Buffer.from(b.trim());
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 // 4. Master / Admin Authentication (Passkey abhi07 + backwards compatibility)
-app.post(['/api/auth/login', '/api/v1/auth/login', '/api/v1/admin/login', '/api/admin/login', '/api/v1/master/login', '/api/master/login'], async (req, res) => {
+app.post(['/api/auth/login', '/api/v1/auth/login', '/api/v1/admin/login', '/api/admin/login', '/api/v1/master/login', '/api/master/login'], loginRateLimiter, async (req, res) => {
   const { passkey, key, email, password } = req.body;
   const providedPasskey = passkey || key || (!email && password ? password : null);
   const masterSecret = process.env.MASTER_PASSKEY || 'abhi07';
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
 
-  // Check Master Passkey
+  // Check Master Passkey with timing-safe comparison
   if (providedPasskey) {
-    if (providedPasskey.trim() === masterSecret.trim()) {
+    if (safeCompareStrings(providedPasskey, masterSecret)) {
+      loginRateLimitMap.delete(clientIp);
       const token = generateToken({
         id: 'master_admin_07',
         username: 'Master Admin',
@@ -1565,23 +1250,11 @@ app.post(['/api/auth/login', '/api/v1/auth/login', '/api/v1/admin/login', '/api/
 // 5a. Admin Real-Time Metrics & Statistics Dashboard Endpoint
 app.get(['/api/v1/admin/stats', '/api/admin/stats'], authenticateToken, async (req, res) => {
   try {
-    let list = [];
-    let capacityLimit = 500;
-    let isOpen = true;
-
-    if (isMongoConnected) {
-      list = await Registration.find().sort({ createdAt: -1 });
-      const settings = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-      if (settings) {
-        capacityLimit = settings.registrationLimit || 500;
-        isOpen = settings.isOpen !== false;
-      }
-    } else {
-      list = readJson(DB_FILE, []).reverse();
-      const current = readJson(SETTINGS_FILE, defaultSettings);
-      capacityLimit = current.totalSeats || 500;
-      isOpen = current.isOpen !== false;
-    }
+    await ensureDbConnected();
+    const list = await Registration.find().sort({ createdAt: -1 });
+    const settings = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+    const capacityLimit = settings ? (settings.registrationLimit || 500) : 500;
+    const isOpen = settings ? (settings.isOpen !== false) : true;
 
     const totalParticipants = list.length;
     const paidCount = list.filter((r) => r.paymentStatus === 'PAID').length;
@@ -1623,19 +1296,13 @@ app.get(['/api/v1/admin/stats', '/api/admin/stats'], authenticateToken, async (r
 const handleEventStatusToggle = async (req, res) => {
   const { isOpen } = req.body;
   try {
+    await ensureDbConnected();
     const targetState = Boolean(isOpen);
-    if (isMongoConnected) {
-      await EventSettings.findOneAndUpdate(
-        { eventCode: 'AGRIVERSE_2026' },
-        { $set: { isOpen: targetState } },
-        { upsert: true, new: true }
-      );
-    }
-    try {
-      const current = readJson(SETTINGS_FILE, defaultSettings);
-      current.isOpen = targetState;
-      writeJson(SETTINGS_FILE, current);
-    } catch (_) {}
+    await EventSettings.findOneAndUpdate(
+      { eventCode: 'AGRIVERSE_2026' },
+      { $set: { isOpen: targetState } },
+      { upsert: true, new: true }
+    );
 
     memoryCache.invalidate('stats');
 
@@ -1654,23 +1321,15 @@ app.post(['/api/v1/admin/event/status', '/api/admin/event/status'], authenticate
 
 app.post(['/api/v1/admin/event/toggle', '/api/admin/event/toggle'], authenticateToken, async (req, res) => {
   try {
-    let newState = false;
-    if (isMongoConnected) {
-      const settings = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-      const current = settings ? settings.isOpen !== false : true;
-      newState = !current;
-      await EventSettings.findOneAndUpdate(
-        { eventCode: 'AGRIVERSE_2026' },
-        { $set: { isOpen: newState } },
-        { upsert: true, new: true }
-      );
-    } else {
-      const current = readJson(SETTINGS_FILE, defaultSettings);
-      const isCur = current.isOpen !== false;
-      newState = !isCur;
-      current.isOpen = newState;
-      writeJson(SETTINGS_FILE, current);
-    }
+    await ensureDbConnected();
+    const settings = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+    const current = settings ? settings.isOpen !== false : true;
+    const newState = !current;
+    await EventSettings.findOneAndUpdate(
+      { eventCode: 'AGRIVERSE_2026' },
+      { $set: { isOpen: newState } },
+      { upsert: true, new: true }
+    );
 
     memoryCache.invalidate('stats');
 
@@ -1687,14 +1346,10 @@ app.post(['/api/v1/admin/event/toggle', '/api/admin/event/toggle'], authenticate
 // 5c. Get Registrations List with Search, Filter & Pagination Support
 app.get(['/api/v1/admin/registrations', '/api/admin/registrations'], authenticateToken, async (req, res) => {
   try {
+    await ensureDbConnected();
     const { search, status, residency, page = 1, limit = 50 } = req.query;
 
-    let list = [];
-    if (isMongoConnected) {
-      list = await Registration.find().sort({ createdAt: -1 });
-    } else {
-      list = readJson(DB_FILE, []).reverse();
-    }
+    const list = await Registration.find().sort({ createdAt: -1 });
 
     let filtered = list;
 
@@ -1765,51 +1420,28 @@ app.patch(['/api/v1/admin/registrations/:id/verify', '/api/admin/registrations/:
   const lookupUpper = (id || '').toUpperCase();
 
   try {
-    let updated = null;
-    if (isMongoConnected) {
-      updated = await Registration.findOneAndUpdate(
-        {
-          $or: [
-            { id: id },
-            { regNo: lookupUpper },
-            { registrationId: lookupUpper },
-            { _id: mongoose.isValidObjectId(id) ? id : null }
-          ]
-        },
-        {
-          $set: {
-            status: 'VERIFIED',
-            verificationStatus: 'VERIFIED',
-            paymentStatus: 'PAID',
-            verifiedAt: new Date(),
-            rejectionReason: '',
-            adminNotes: 'Payment vetted and verified by administrator.'
-          }
-        },
-        { new: true }
-      );
-    } else {
-      await storageMutex.dispatch(async () => {
-        const registrations = readJson(DB_FILE, []);
-        const idx = registrations.findIndex(
-          (r) =>
-            r.id === id ||
-            r._id === id ||
-            r.regNo?.toUpperCase() === lookupUpper ||
-            r.registrationId?.toUpperCase() === lookupUpper
-        );
-        if (idx !== -1) {
-          registrations[idx].status = 'VERIFIED';
-          registrations[idx].verificationStatus = 'VERIFIED';
-          registrations[idx].paymentStatus = 'PAID';
-          registrations[idx].verifiedAt = new Date().toISOString();
-          registrations[idx].rejectionReason = '';
-          registrations[idx].adminNotes = 'Payment vetted and verified by administrator.';
-          writeJson(DB_FILE, registrations);
-          updated = registrations[idx];
+    await ensureDbConnected();
+    const updated = await Registration.findOneAndUpdate(
+      {
+        $or: [
+          { id: id },
+          { regNo: lookupUpper },
+          { registrationId: lookupUpper },
+          { _id: mongoose.isValidObjectId(id) ? id : null }
+        ]
+      },
+      {
+        $set: {
+          status: 'VERIFIED',
+          verificationStatus: 'VERIFIED',
+          paymentStatus: 'PAID',
+          verifiedAt: new Date(),
+          rejectionReason: '',
+          adminNotes: 'Payment vetted and verified by administrator.'
         }
-      });
-    }
+      },
+      { new: true }
+    );
 
     if (!updated) {
       return res.status(404).json({ error: 'Registration record not found.' });
@@ -1835,49 +1467,27 @@ app.patch(['/api/v1/admin/registrations/:id/reject', '/api/admin/registrations/:
   const lookupUpper = (id || '').toUpperCase();
 
   try {
-    let updated = null;
-    if (isMongoConnected) {
-      updated = await Registration.findOneAndUpdate(
-        {
-          $or: [
-            { id: id },
-            { regNo: lookupUpper },
-            { registrationId: lookupUpper },
-            { _id: mongoose.isValidObjectId(id) ? id : null }
-          ]
-        },
-        {
-          $set: {
-            status: 'REJECTED',
-            verificationStatus: 'REJECTED',
-            verifiedAt: new Date(),
-            rejectionReason: reasonText,
-            adminNotes: reasonText
-          }
-        },
-        { new: true }
-      );
-    } else {
-      await storageMutex.dispatch(async () => {
-        const registrations = readJson(DB_FILE, []);
-        const idx = registrations.findIndex(
-          (r) =>
-            r.id === id ||
-            r._id === id ||
-            r.regNo?.toUpperCase() === lookupUpper ||
-            r.registrationId?.toUpperCase() === lookupUpper
-        );
-        if (idx !== -1) {
-          registrations[idx].status = 'REJECTED';
-          registrations[idx].verificationStatus = 'REJECTED';
-          registrations[idx].verifiedAt = new Date().toISOString();
-          registrations[idx].rejectionReason = reasonText;
-          registrations[idx].adminNotes = reasonText;
-          writeJson(DB_FILE, registrations);
-          updated = registrations[idx];
+    await ensureDbConnected();
+    const updated = await Registration.findOneAndUpdate(
+      {
+        $or: [
+          { id: id },
+          { regNo: lookupUpper },
+          { registrationId: lookupUpper },
+          { _id: mongoose.isValidObjectId(id) ? id : null }
+        ]
+      },
+      {
+        $set: {
+          status: 'REJECTED',
+          verificationStatus: 'REJECTED',
+          verifiedAt: new Date(),
+          rejectionReason: reasonText,
+          adminNotes: reasonText
         }
-      });
-    }
+      },
+      { new: true }
+    );
 
     if (!updated) {
       return res.status(404).json({ error: 'Registration record not found.' });
@@ -1925,49 +1535,27 @@ async function handleStatusUpdate(req, res) {
   const lookupUpper = (id || '').toUpperCase();
 
   try {
-    let updatedRecord = null;
-    if (isMongoConnected) {
-      updatedRecord = await Registration.findOneAndUpdate(
-        {
-          $or: [
-            { id: id },
-            { regNo: lookupUpper },
-            { registrationId: lookupUpper },
-            { _id: mongoose.isValidObjectId(id) ? id : null }
-          ]
-        },
-        {
-          $set: {
-            status: internalStatus,
-            verificationStatus: verStatus,
-            ...(verStatus === 'VERIFIED' ? { paymentStatus: 'PAID' } : {}),
-            ...(adminNotes !== undefined ? { adminNotes } : {}),
-            ...(reasonText ? { rejectionReason: reasonText } : {})
-          }
-        },
-        { new: true }
-      );
-    } else {
-      await storageMutex.dispatch(async () => {
-        const registrations = readJson(DB_FILE, []);
-        const idx = registrations.findIndex(
-          (r) =>
-            r.id === id ||
-            r._id === id ||
-            r.regNo?.toUpperCase() === lookupUpper ||
-            r.registrationId?.toUpperCase() === lookupUpper
-        );
-        if (idx !== -1) {
-          registrations[idx].status = internalStatus;
-          registrations[idx].verificationStatus = verStatus;
-          if (verStatus === 'VERIFIED') registrations[idx].paymentStatus = 'PAID';
-          if (adminNotes !== undefined) registrations[idx].adminNotes = adminNotes;
-          if (reasonText) registrations[idx].rejectionReason = reasonText;
-          writeJson(DB_FILE, registrations);
-          updatedRecord = registrations[idx];
+    await ensureDbConnected();
+    const updatedRecord = await Registration.findOneAndUpdate(
+      {
+        $or: [
+          { id: id },
+          { regNo: lookupUpper },
+          { registrationId: lookupUpper },
+          { _id: mongoose.isValidObjectId(id) ? id : null }
+        ]
+      },
+      {
+        $set: {
+          status: internalStatus,
+          verificationStatus: verStatus,
+          ...(verStatus === 'VERIFIED' ? { paymentStatus: 'PAID' } : {}),
+          ...(adminNotes !== undefined ? { adminNotes } : {}),
+          ...(reasonText ? { rejectionReason: reasonText } : {})
         }
-      });
-    }
+      },
+      { new: true }
+    );
 
     if (!updatedRecord) {
       return res.status(404).json({ error: 'Registration record not found.' });
@@ -2027,22 +1615,13 @@ app.post(['/api/v1/admin/students', '/api/admin/students'], authenticateToken, a
       return res.status(400).json({ error: 'Student Full Name and Register Number are mandatory.' });
     }
 
-    // Check duplicate
-    if (isMongoConnected) {
-      const exists = await Registration.findOne({
-        $or: [{ regNo: cleanRegNo }, { registrationId: cleanRegNo }, { email: cleanEmail }]
-      });
-      if (exists) {
-        return res.status(409).json({ error: `A registration with Register No ${cleanRegNo} or email already exists.` });
-      }
-    } else {
-      const registrations = readJson(DB_FILE, []);
-      const exists = registrations.find(
-        (r) => r.regNo?.toUpperCase() === cleanRegNo || r.email?.toLowerCase() === cleanEmail
-      );
-      if (exists) {
-        return res.status(409).json({ error: `A registration with Register No ${cleanRegNo} or email already exists.` });
-      }
+    // Check duplicate in MongoDB
+    await ensureDbConnected();
+    const exists = await Registration.findOne({
+      $or: [{ regNo: cleanRegNo }, { registrationId: cleanRegNo }, { email: cleanEmail }]
+    });
+    if (exists) {
+      return res.status(409).json({ error: `A registration with Register No ${cleanRegNo} or email already exists.` });
     }
 
     const randomHex = Math.floor(1000 + Math.random() * 9000);
@@ -2079,21 +1658,13 @@ app.post(['/api/v1/admin/students', '/api/admin/students'], authenticateToken, a
       createdAt: new Date()
     };
 
-    if (isMongoConnected) {
-      const doc = new Registration(newRecord);
-      await doc.save();
-      await EventSettings.findOneAndUpdate(
-        { eventCode: 'AGRIVERSE_2026' },
-        { $inc: { currentRegistrations: 1 } },
-        { upsert: true }
-      );
-    } else {
-      await storageMutex.dispatch(async () => {
-        const registrations = readJson(DB_FILE, []);
-        registrations.push(newRecord);
-        writeJson(DB_FILE, registrations);
-      });
-    }
+    const doc = new Registration(newRecord);
+    await doc.save();
+    await EventSettings.findOneAndUpdate(
+      { eventCode: 'AGRIVERSE_2026' },
+      { $inc: { currentRegistrations: 1 } },
+      { upsert: true }
+    );
 
     memoryCache.invalidate('stats');
 
@@ -2140,37 +1711,19 @@ async function handleEditStudent(req, res) {
     if (sanitizedUpdates.residency && !sanitizedUpdates.residencyStatus) sanitizedUpdates.residencyStatus = sanitizedUpdates.residency;
     if (sanitizedUpdates.transactionId && !sanitizedUpdates.txnId) sanitizedUpdates.txnId = sanitizedUpdates.transactionId;
 
-    let updated = null;
-    if (isMongoConnected) {
-      updated = await Registration.findOneAndUpdate(
-        {
-          $or: [
-            { id: id },
-            { regNo: lookupUpper },
-            { registrationId: lookupUpper },
-            { _id: mongoose.isValidObjectId(id) ? id : null }
-          ]
-        },
-        { $set: sanitizedUpdates },
-        { new: true }
-      );
-    } else {
-      await storageMutex.dispatch(async () => {
-        const registrations = readJson(DB_FILE, []);
-        const idx = registrations.findIndex(
-          (r) =>
-            r.id === id ||
-            r._id === id ||
-            r.regNo?.toUpperCase() === lookupUpper ||
-            r.registrationId?.toUpperCase() === lookupUpper
-        );
-        if (idx !== -1) {
-          Object.assign(registrations[idx], sanitizedUpdates);
-          writeJson(DB_FILE, registrations);
-          updated = registrations[idx];
-        }
-      });
-    }
+    await ensureDbConnected();
+    const updated = await Registration.findOneAndUpdate(
+      {
+        $or: [
+          { id: id },
+          { regNo: lookupUpper },
+          { registrationId: lookupUpper },
+          { _id: mongoose.isValidObjectId(id) ? id : null }
+        ]
+      },
+      { $set: sanitizedUpdates },
+      { new: true }
+    );
 
     if (!updated) {
       return res.status(404).json({ error: 'Student record not found.' });
@@ -2198,15 +1751,8 @@ app.get(
     try {
       const { status = 'ALL', residency = 'ALL', search } = req.query;
 
-      let list = [];
-      if (isMongoConnected) {
-        // Queries matching registrations sorted chronologically (createdAt: 1)
-        list = await Registration.find().sort({ createdAt: 1 });
-      } else {
-        list = readJson(DB_FILE, []).sort(
-          (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
-        );
-      }
+      await ensureDbConnected();
+      const list = await Registration.find().sort({ createdAt: 1 });
 
       let filtered = list;
 
@@ -2307,42 +1853,32 @@ async function getFullEventSettings() {
     }
   ];
 
-  if (isMongoConnected) {
-    let settings = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-    if (!settings) {
-      settings = await EventSettings.create({
-        eventCode: 'AGRIVERSE_2026',
-        registrationLimit: 500,
-        currentRegistrations: 372,
-        isOpen: true,
-        fee: 350,
-        whatsappLink: 'https://chat.whatsapp.com/invite/AgriVerseUECourse2026',
-        qrCodes: initialQrs,
-        whatsappGroups: initialWaGroups
-      });
-    } else {
-      let needsSave = false;
-      if (!settings.qrCodes || settings.qrCodes.length === 0) {
-        settings.qrCodes = initialQrs;
-        needsSave = true;
-      }
-      if (!settings.whatsappGroups || settings.whatsappGroups.length === 0) {
-        settings.whatsappGroups = initialWaGroups;
-        needsSave = true;
-      }
-      if (needsSave) await settings.save();
-    }
-    return settings;
+  await ensureDbConnected();
+  let settings = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+  if (!settings) {
+    settings = await EventSettings.create({
+      eventCode: 'AGRIVERSE_2026',
+      registrationLimit: 500,
+      currentRegistrations: 0,
+      isOpen: true,
+      fee: 350,
+      whatsappLink: 'https://chat.whatsapp.com/invite/AgriVerseUECourse2026',
+      qrCodes: initialQrs,
+      whatsappGroups: initialWaGroups
+    });
   } else {
-    const current = readJson(SETTINGS_FILE, defaultSettings);
-    if (!current.qrCodes || current.qrCodes.length === 0) current.qrCodes = initialQrs;
-    if (!current.whatsappGroups || current.whatsappGroups.length === 0) current.whatsappGroups = initialWaGroups;
-    if (current.isOpen === undefined) current.isOpen = true;
-    if (current.fee === undefined) current.fee = 350;
-    if (!current.registrationLimit) current.registrationLimit = current.totalSeats || 500;
-    writeJson(SETTINGS_FILE, current);
-    return current;
+    let needsSave = false;
+    if (!settings.qrCodes || settings.qrCodes.length === 0) {
+      settings.qrCodes = initialQrs;
+      needsSave = true;
+    }
+    if (!settings.whatsappGroups || settings.whatsappGroups.length === 0) {
+      settings.whatsappGroups = initialWaGroups;
+      needsSave = true;
+    }
+    if (needsSave) await settings.save();
   }
+  return settings;
 }
 
 // F1. Get Complete Settings (General, Multiple QRs, WhatsApp Groups)
@@ -2406,25 +1942,18 @@ async function handleUpdateSettings(req, res) {
     }
     if (whatsappLink) updateFields.whatsappLink = whatsappLink.trim();
 
-    let updated = null;
-    if (isMongoConnected) {
-      updated = await EventSettings.findOneAndUpdate(
-        { eventCode: 'AGRIVERSE_2026' },
-        { $set: updateFields },
-        { new: true, upsert: true }
+    await ensureDbConnected();
+    const updated = await EventSettings.findOneAndUpdate(
+      { eventCode: 'AGRIVERSE_2026' },
+      { $set: updateFields },
+      { new: true, upsert: true }
+    );
+    if (updateFields.totalSeats) {
+      await EventQuota.findOneAndUpdate(
+        { code: 'AGRIVERSE_2026' },
+        { $set: { totalSeats: updateFields.totalSeats } },
+        { upsert: true }
       );
-      if (updateFields.totalSeats) {
-        await EventQuota.findOneAndUpdate(
-          { code: 'AGRIVERSE_2026' },
-          { $set: { totalSeats: updateFields.totalSeats } },
-          { upsert: true }
-        );
-      }
-    } else {
-      const current = await getFullEventSettings();
-      Object.assign(current, updateFields);
-      writeJson(SETTINGS_FILE, current);
-      updated = current;
     }
 
     memoryCache.invalidate();
@@ -2453,32 +1982,40 @@ app.post(
       const uploadedFiles = req.files || [];
 
       // Support direct image URL upload if no files attached
-      if (uploadedFiles.length === 0 && req.body.imageUrl) {
+      if (uploadedFiles.length === 0 && (req.body.imageUrl || req.body.url)) {
+        let finalUrl = (req.body.imageUrl || req.body.url).trim();
+        let publicId = '';
+        let storageProvider = 'external';
+
+        if (finalUrl.startsWith('data:image')) {
+          const cdnRes = await uploadToCloudinary(finalUrl, {
+            subfolder: 'qr_codes',
+            publicId: `QR_${Date.now()}`
+          });
+          finalUrl = cdnRes.url;
+          publicId = cdnRes.publicId;
+          storageProvider = 'cloudinary';
+        }
+
         const singleQr = {
           id: `QR-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
           title: (title || 'UPI QR Code').trim(),
           upiId: (upiId || 'agriverse@upi').trim(),
-          url: req.body.url ? req.body.url.trim() : req.body.imageUrl.trim(),
-          imageUrl: req.body.imageUrl ? req.body.imageUrl.trim() : req.body.url.trim(),
-          publicId: '',
-          storageProvider: 'external',
+          url: finalUrl,
+          imageUrl: finalUrl,
+          publicId,
+          storageProvider,
           active: true,
           isActive: true,
           createdAt: new Date()
         };
 
-        if (isMongoConnected) {
-          await EventSettings.findOneAndUpdate(
-            { eventCode: 'AGRIVERSE_2026' },
-            { $push: { qrCodes: singleQr } },
-            { upsert: true }
-          );
-        } else {
-          const current = await getFullEventSettings();
-          current.qrCodes = current.qrCodes || [];
-          current.qrCodes.push(singleQr);
-          writeJson(SETTINGS_FILE, current);
-        }
+        await ensureDbConnected();
+        await EventSettings.findOneAndUpdate(
+          { eventCode: 'AGRIVERSE_2026' },
+          { $push: { qrCodes: singleQr } },
+          { upsert: true }
+        );
 
         memoryCache.invalidate('stats');
         return res.status(201).json({ success: true, qrCode: singleQr });
@@ -2492,7 +2029,7 @@ app.post(
       for (let i = 0; i < uploadedFiles.length; i++) {
         const file = uploadedFiles[i];
         const uniqueRegKey = `QR_${Date.now()}_${i}`;
-        const proofResult = await processAndStoreProof(file.buffer, file.originalname, file.mimetype, uniqueRegKey);
+        const proofResult = await processAndStoreProof(file.buffer, file.originalname, file.mimetype, uniqueRegKey, 'qr_codes');
 
         const customTitle = uploadedFiles.length === 1 && title
           ? title.trim()
@@ -2505,7 +2042,7 @@ app.post(
           url: proofResult.proofUrl,
           imageUrl: proofResult.proofUrl,
           publicId: proofResult.publicId || '',
-          storageProvider: proofResult.storageProvider || 'local',
+          storageProvider: 'cloudinary',
           active: true,
           isActive: true,
           createdAt: new Date()
@@ -2513,18 +2050,12 @@ app.post(
         createdQrs.push(qrItem);
       }
 
-      if (isMongoConnected) {
-        await EventSettings.findOneAndUpdate(
-          { eventCode: 'AGRIVERSE_2026' },
-          { $push: { qrCodes: { $each: createdQrs } } },
-          { upsert: true }
-        );
-      } else {
-        const current = await getFullEventSettings();
-        current.qrCodes = current.qrCodes || [];
-        current.qrCodes.push(...createdQrs);
-        writeJson(SETTINGS_FILE, current);
-      }
+      await ensureDbConnected();
+      await EventSettings.findOneAndUpdate(
+        { eventCode: 'AGRIVERSE_2026' },
+        { $push: { qrCodes: { $each: createdQrs } } },
+        { upsert: true }
+      );
 
       memoryCache.invalidate('stats');
 
@@ -2544,23 +2075,14 @@ app.patch(['/api/v1/admin/settings/qrs/:id/toggle', '/api/admin/settings/qrs/:id
   const { id } = req.params;
   try {
     let targetQr = null;
-    if (isMongoConnected) {
-      const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-      if (doc && doc.qrCodes) {
-        const qr = doc.qrCodes.find((q) => q.id === id);
-        if (qr) {
-          qr.isActive = !qr.isActive;
-          doc.markModified('qrCodes');
-          await doc.save();
-          targetQr = qr;
-        }
-      }
-    } else {
-      const current = await getFullEventSettings();
-      const qr = (current.qrCodes || []).find((q) => q.id === id);
+    await ensureDbConnected();
+    const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+    if (doc && doc.qrCodes) {
+      const qr = doc.qrCodes.find((q) => q.id === id);
       if (qr) {
         qr.isActive = !qr.isActive;
-        writeJson(SETTINGS_FILE, current);
+        doc.markModified('qrCodes');
+        await doc.save();
         targetQr = qr;
       }
     }
@@ -2584,26 +2106,16 @@ async function handleEditQr(req, res) {
   const { title, upiId, isActive } = req.body;
   try {
     let targetQr = null;
-    if (isMongoConnected) {
-      const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-      if (doc && doc.qrCodes) {
-        const qr = doc.qrCodes.find((q) => q.id === id);
-        if (qr) {
-          if (title !== undefined) qr.title = title.trim();
-          if (upiId !== undefined) qr.upiId = upiId.trim();
-          if (isActive !== undefined) qr.isActive = Boolean(isActive);
-          await doc.save();
-          targetQr = qr;
-        }
-      }
-    } else {
-      const current = await getFullEventSettings();
-      const qr = (current.qrCodes || []).find((q) => q.id === id);
+    await ensureDbConnected();
+    const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+    if (doc && doc.qrCodes) {
+      const qr = doc.qrCodes.find((q) => q.id === id);
       if (qr) {
         if (title !== undefined) qr.title = title.trim();
         if (upiId !== undefined) qr.upiId = upiId.trim();
         if (isActive !== undefined) qr.isActive = Boolean(isActive);
-        writeJson(SETTINGS_FILE, current);
+        doc.markModified('qrCodes');
+        await doc.save();
         targetQr = qr;
       }
     }
@@ -2622,24 +2134,15 @@ app.delete(['/api/v1/admin/settings/qrs/:id', '/api/admin/settings/qrs/:id'], au
   const { id } = req.params;
   try {
     let removedQr = null;
-
-    if (isMongoConnected) {
-      const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-      if (doc && doc.qrCodes) {
-        const idx = doc.qrCodes.findIndex((q) => q.id === id);
-        if (idx !== -1) {
-          removedQr = doc.qrCodes[idx];
-          doc.qrCodes.splice(idx, 1);
-          await doc.save();
-        }
-      }
-    } else {
-      const current = await getFullEventSettings();
-      const idx = (current.qrCodes || []).findIndex((q) => q.id === id);
+    await ensureDbConnected();
+    const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+    if (doc && doc.qrCodes) {
+      const idx = doc.qrCodes.findIndex((q) => q.id === id);
       if (idx !== -1) {
-        removedQr = current.qrCodes[idx];
-        current.qrCodes.splice(idx, 1);
-        writeJson(SETTINGS_FILE, current);
+        removedQr = doc.qrCodes[idx];
+        doc.qrCodes.splice(idx, 1);
+        doc.markModified('qrCodes');
+        await doc.save();
       }
     }
 
@@ -2741,18 +2244,12 @@ app.post(['/api/v1/admin/settings/whatsapp-groups', '/api/admin/settings/whatsap
       createdAt: new Date()
     };
 
-    if (isMongoConnected) {
-      await EventSettings.findOneAndUpdate(
-        { eventCode: 'AGRIVERSE_2026' },
-        { $push: { whatsappGroups: newGroup } },
-        { upsert: true }
-      );
-    } else {
-      const current = await getFullEventSettings();
-      current.whatsappGroups = current.whatsappGroups || [];
-      current.whatsappGroups.push(newGroup);
-      writeJson(SETTINGS_FILE, current);
-    }
+    await ensureDbConnected();
+    await EventSettings.findOneAndUpdate(
+      { eventCode: 'AGRIVERSE_2026' },
+      { $push: { whatsappGroups: newGroup } },
+      { upsert: true }
+    );
 
     memoryCache.invalidate('stats');
     res.status(201).json({ success: true, message: 'Community WhatsApp group added.', group: newGroup });
@@ -2771,28 +2268,17 @@ async function handleEditWaGroup(req, res) {
   const { name, inviteUrl, url, priority, isActive } = req.body;
   try {
     let targetGroup = null;
-    if (isMongoConnected) {
-      const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-      if (doc && doc.whatsappGroups) {
-        const g = doc.whatsappGroups.find((item) => item.id === id);
-        if (g) {
-          if (name !== undefined) g.name = name.trim();
-          if (inviteUrl !== undefined || url !== undefined) g.inviteUrl = (inviteUrl || url).trim();
-          if (priority !== undefined) g.priority = Number(priority);
-          if (isActive !== undefined) g.isActive = Boolean(isActive);
-          await doc.save();
-          targetGroup = g;
-        }
-      }
-    } else {
-      const current = await getFullEventSettings();
-      const g = (current.whatsappGroups || []).find((item) => item.id === id);
+    await ensureDbConnected();
+    const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+    if (doc && doc.whatsappGroups) {
+      const g = doc.whatsappGroups.find((item) => item.id === id);
       if (g) {
         if (name !== undefined) g.name = name.trim();
         if (inviteUrl !== undefined || url !== undefined) g.inviteUrl = (inviteUrl || url).trim();
         if (priority !== undefined) g.priority = Number(priority);
         if (isActive !== undefined) g.isActive = Boolean(isActive);
-        writeJson(SETTINGS_FILE, current);
+        doc.markModified('whatsappGroups');
+        await doc.save();
         targetGroup = g;
       }
     }
@@ -2814,22 +2300,14 @@ app.patch(
     const { id } = req.params;
     try {
       let targetGroup = null;
-      if (isMongoConnected) {
-        const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-        if (doc && doc.whatsappGroups) {
-          const g = doc.whatsappGroups.find((item) => item.id === id);
-          if (g) {
-            g.isActive = !g.isActive;
-            await doc.save();
-            targetGroup = g;
-          }
-        }
-      } else {
-        const current = await getFullEventSettings();
-        const g = (current.whatsappGroups || []).find((item) => item.id === id);
+      await ensureDbConnected();
+      const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+      if (doc && doc.whatsappGroups) {
+        const g = doc.whatsappGroups.find((item) => item.id === id);
         if (g) {
           g.isActive = !g.isActive;
-          writeJson(SETTINGS_FILE, current);
+          doc.markModified('whatsappGroups');
+          await doc.save();
           targetGroup = g;
         }
       }
@@ -2849,22 +2327,14 @@ app.delete(['/api/v1/admin/settings/whatsapp-groups/:id', '/api/admin/settings/w
   const { id } = req.params;
   try {
     let deleted = false;
-    if (isMongoConnected) {
-      const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
-      if (doc && doc.whatsappGroups) {
-        const idx = doc.whatsappGroups.findIndex((item) => item.id === id);
-        if (idx !== -1) {
-          doc.whatsappGroups.splice(idx, 1);
-          await doc.save();
-          deleted = true;
-        }
-      }
-    } else {
-      const current = await getFullEventSettings();
-      const idx = (current.whatsappGroups || []).findIndex((item) => item.id === id);
+    await ensureDbConnected();
+    const doc = await EventSettings.findOne({ eventCode: 'AGRIVERSE_2026' });
+    if (doc && doc.whatsappGroups) {
+      const idx = doc.whatsappGroups.findIndex((item) => item.id === id);
       if (idx !== -1) {
-        current.whatsappGroups.splice(idx, 1);
-        writeJson(SETTINGS_FILE, current);
+        doc.whatsappGroups.splice(idx, 1);
+        doc.markModified('whatsappGroups');
+        await doc.save();
         deleted = true;
       }
     }
@@ -2901,7 +2371,10 @@ app.post('/api/registration/submit-payment', upload.single('idProof'), async (re
     return res.status(400).json({ error: 'Please enter a valid UPI Transaction / Reference (UTR) ID (min 4 characters).' });
   }
 
-  if (!req.file) {
+  const base64Proof = req.body?.idProof || req.body?.paymentScreenshot;
+  const proofInput = req.file ? req.file.buffer : (typeof base64Proof === 'string' && base64Proof.startsWith('data:image') ? base64Proof : null);
+
+  if (!proofInput) {
     return res.status(400).json({ error: 'Please attach your UPI payment confirmation screenshot.' });
   }
 
@@ -2911,97 +2384,68 @@ app.post('/api/registration/submit-payment', upload.single('idProof'), async (re
   }
 
   try {
+    await ensureDbConnected();
+
     // 1. DUPLICATE UPI TXN ID VERIFICATION: Immediate stop to duplicate/reused UPI IDs
-    if (isMongoConnected) {
-      const existingTxn = await Registration.findOne({
-        txnId: cleanTxnId,
-        $nor: [{ regNo: lookupKey }, { id: lookupKey }]
+    const existingTxn = await Registration.findOne({
+      txnId: cleanTxnId,
+      $nor: [{ regNo: lookupKey }, { id: lookupKey }, { registrationId: lookupKey }, { registerNumber: lookupKey }]
+    });
+    if (existingTxn) {
+      return res.status(409).json({
+        error: `This UPI Reference ID (${cleanTxnId}) has already been submitted by another attendee (${existingTxn.regNo || existingTxn.registerNumber}). Reused transaction proofs are prohibited.`
       });
-      if (existingTxn) {
-        return res.status(409).json({
-          error: `This UPI Reference ID (${cleanTxnId}) has already been submitted by another attendee (${existingTxn.regNo}). Reused transaction proofs are prohibited.`
-        });
-      }
-    } else {
-      const registrations = readJson(DB_FILE, []);
-      const existingTxn = registrations.find(
-        (r) =>
-          r.txnId &&
-          r.txnId.toUpperCase() === cleanTxnId &&
-          r.regNo?.toUpperCase() !== lookupKey &&
-          r.id?.toUpperCase() !== lookupKey
-      );
-      if (existingTxn) {
-        return res.status(409).json({
-          error: `This UPI Reference ID (${cleanTxnId}) has already been submitted by another attendee. Reused transaction proofs are prohibited.`
-        });
-      }
     }
 
     // 2. Lookup existing registration
-    let record = null;
-    if (isMongoConnected) {
-      record = await Registration.findOne({
-        $or: [{ regNo: lookupKey }, { id: lookupKey }, { phone: lookupKey.replace(/[\s\-\+]/g, '') }]
-      });
-    } else {
-      const registrations = readJson(DB_FILE, []);
-      record = registrations.find(
-        (r) =>
-          (r.regNo && r.regNo.toUpperCase() === lookupKey) ||
-          (r.id && r.id.toUpperCase() === lookupKey) ||
-          (r.phone && r.phone.replace(/[\s\-\+]/g, '') === lookupKey.replace(/[\s\-\+]/g, ''))
-      );
-    }
+    const record = await Registration.findOne({
+      $or: [
+        { regNo: lookupKey },
+        { registerNumber: lookupKey },
+        { registrationId: lookupKey },
+        { id: lookupKey },
+        { phone: lookupKey.replace(/[\s\-\+]/g, '') }
+      ]
+    });
 
     if (!record) {
       return res.status(404).json({ error: 'No matching registration found for ' + lookupKey });
     }
 
-    // 3. Process and store the screenshot proof
+    // 3. Process and store screenshot proof exclusively in Cloudinary CDN
     const proofData = await processAndStoreProof(
-      req.file.buffer,
-      req.file.originalname,
-      req.file.mimetype,
-      record.id
+      proofInput,
+      req.file?.originalname || 'payment_proof.jpg',
+      req.file?.mimetype || 'image/jpeg',
+      record.id || record.regNo,
+      'payment_screenshots'
     );
 
     // 4. Update status to PENDING_AUDIT (Fraud-Resistant Manual Verification Queue)
-    let updatedRecord = null;
-    if (isMongoConnected) {
-      record.txnId = cleanTxnId;
-      record.proofUrl = proofData.proofUrl;
-      record.proofPublicId = proofData.publicId;
-      record.storageProvider = proofData.storageProvider;
-      record.status = 'PENDING_AUDIT';
-      record.joinedWhatsapp = (joinedWhatsapp || 'Yes').trim();
-      record.adminNotes = 'Payment proof uploaded via lookup portal. Awaiting organizer audit.';
-      await record.save();
-      updatedRecord = record;
-    } else {
-      await storageMutex.dispatch(async () => {
-        const registrations = readJson(DB_FILE, []);
-        const idx = registrations.findIndex((r) => r.id === record.id || r.regNo === record.regNo);
-        if (idx !== -1) {
-          registrations[idx].txnId = cleanTxnId;
-          registrations[idx].proofUrl = proofData.proofUrl;
-          registrations[idx].proofPublicId = proofData.publicId;
-          registrations[idx].storageProvider = proofData.storageProvider;
-          registrations[idx].status = 'PENDING_AUDIT';
-          registrations[idx].joinedWhatsapp = (joinedWhatsapp || 'Yes').trim();
-          registrations[idx].adminNotes = 'Payment proof uploaded via lookup portal. Awaiting organizer audit.';
-          writeJson(DB_FILE, registrations);
-          updatedRecord = registrations[idx];
-        }
-      });
-    }
+    record.txnId = cleanTxnId;
+    record.transactionId = cleanTxnId;
+    record.proofUrl = proofData.proofUrl;
+    record.proofPublicId = proofData.publicId;
+    record.storageProvider = 'cloudinary';
+    record.paymentScreenshot = {
+      url: proofData.proofUrl || '',
+      publicId: proofData.publicId || '',
+      storageProvider: 'cloudinary'
+    };
+    record.status = 'PENDING_AUDIT';
+    record.verificationStatus = 'PENDING';
+    record.paymentStatus = 'PAID';
+    record.paymentDate = new Date();
+    record.joinedWhatsapp = (joinedWhatsapp || 'Yes').trim();
+    record.adminNotes = 'Payment proof uploaded to Cloudinary CDN via lookup portal. Awaiting organizer audit.';
+    await record.save();
 
     memoryCache.invalidate('stats');
 
     return res.json({
       success: true,
       message: 'Payment proof submitted successfully! Verification is in progress.',
-      registration: updatedRecord || record
+      registration: record
     });
   } catch (err) {
     console.error('Payment submission error:', err);
@@ -3165,6 +2609,21 @@ app.post('/api/newsletter', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Registration failed' });
   }
+});
+
+// Global Centralized Error Handling Middleware (prevents leaking internal stack traces)
+app.use((err, req, res, next) => {
+  console.error('Centralized Error Handler caught:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production'
+      ? 'An unexpected error occurred. Please contact the administrator.'
+      : (err.message || 'Internal Server Error')
+  });
 });
 
 // Start Server

@@ -138,7 +138,7 @@ export default function AdminRegistrationsPage() {
             type="button"
             onClick={() => handleExportExcel(statusFilter)}
             disabled={exportingExcel}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#15803D] hover:bg-[#1E5D39] text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#15803D] hover:bg-[#1E5D39] text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
             title="Export matching records to styled .xlsx"
           >
             <Download className="w-4 h-4 text-[#84CC16]" />
@@ -148,7 +148,7 @@ export default function AdminRegistrationsPage() {
           <button
             type="button"
             onClick={() => loadAdminRegistrations(adminToken)}
-            className="p-2.5 rounded-2xl bg-white border border-[#CCE3DE] text-[#1A3C34] hover:bg-[#F4F9F6] transition-colors shadow-xs cursor-pointer"
+            className="p-2.5 rounded-lg bg-white border border-[#DCE8E2] text-[#1A3C34] hover:bg-[#F4F9F6] transition-colors shadow-xs cursor-pointer"
             title="Refresh list"
           >
             <RefreshCw className="w-4 h-4" />
@@ -205,7 +205,7 @@ export default function AdminRegistrationsPage() {
       {/* ======================================================================
           3. REGISTRATIONS TABLE
           ====================================================================== */}
-      <div className="bg-white rounded-3xl border border-[#CCE3DE] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#DCE8E2] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[820px]">
             <thead>
@@ -411,7 +411,7 @@ export default function AdminRegistrationsPage() {
                             {isDropdownOpen && (
                               <div
                                 onClick={(e) => e.stopPropagation()}
-                                className="absolute right-0 top-full mt-1.5 w-48 rounded-2xl bg-white border border-[#CCE3DE] shadow-xl z-50 p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95"
+                                className="absolute right-0 top-full mt-1.5 w-48 rounded-lg bg-white border border-[#DCE8E2] shadow-xl z-50 p-1.5 space-y-1 text-left animate-in fade-in zoom-in-95"
                               >
                                 <button
                                   type="button"
@@ -458,7 +458,7 @@ export default function AdminRegistrationsPage() {
           ====================================================================== */}
       {rejectingItem && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-[#CCE3DE] p-6 max-w-md w-full space-y-4 shadow-2xl">
+          <div className="bg-white rounded-xl border border-[#DCE8E2] p-6 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#CCE3DE] pb-3">
               <h3 className="font-bold text-base text-[#DC2626] flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />

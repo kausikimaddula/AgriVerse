@@ -46,6 +46,9 @@ const QRCodeItemSchema = new mongoose.Schema(
 );
 
 QRCodeItemSchema.pre('validate', function () {
+  if (this.url && typeof this.url === 'string' && this.url.startsWith('data:image')) {
+    throw new Error('Images cannot be stored directly in MongoDB. Please upload to Cloudinary.');
+  }
   if (this.url && !this.imageUrl) {
     this.imageUrl = this.url;
   } else if (this.imageUrl && !this.url) {
@@ -191,6 +194,11 @@ eventSettingsSchema.pre('validate', function () {
     this.registrationOpen = this.isOpen;
   } else if (this.registrationOpen !== undefined && this.isOpen !== undefined) {
     this.isOpen = this.registrationOpen;
+  }
+
+  // Prevent raw base64 images from ever being saved directly in MongoDB
+  if (this.qrCode?.url && typeof this.qrCode.url === 'string' && this.qrCode.url.startsWith('data:image')) {
+    throw new Error('Images cannot be stored directly in MongoDB. Please upload to Cloudinary.');
   }
 
   // Synchronize registrationFee <-> fee

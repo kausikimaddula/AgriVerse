@@ -785,7 +785,7 @@ export default function RegisterPage() {
           STEP 1: STUDENT REGISTRATION FORM
           ====================================================================== */}
       {step === 1 && (
-        <div className="relative bg-[#F4F9F6] p-6 sm:p-12 rounded-3xl border border-[#CCE3DE] shadow-xl overflow-hidden">
+        <div className="relative bg-white p-6 sm:p-10 rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Corner Leaves SVGs */}
           <svg
             className="absolute -top-4 -right-4 w-32 h-32 sm:w-44 sm:h-44 text-[#1A3C34] pointer-events-none select-none z-0 opacity-80"
@@ -807,7 +807,7 @@ export default function RegisterPage() {
           <div className="relative z-10 mb-6 sm:mb-8">
             <div className="flex items-center gap-4 flex-wrap">
               <h1 className="text-3xl sm:text-5xl font-black font-serif text-[#1A3C34] tracking-wider uppercase">
-                {eventGate.checked && !eventGate.isOpen ? 'REGISTRATIONS' : 'SIGN UP FORM'}
+                {eventGate.checked && !eventGate.isOpen ? 'REGISTRATIONS' : 'REGISTRATION FORM'}
               </h1>
               <div className="flex flex-col gap-1.5 w-16 sm:w-24 pt-1">
                 <div className="h-0.5 bg-[#1A3C34] rounded-full" />
@@ -818,7 +818,7 @@ export default function RegisterPage() {
 
             <div className="mt-2 space-y-1">
               <p className="text-xs sm:text-sm font-bold text-[#1A3C34] uppercase tracking-wider">
-                🌱 AgriVerse: UE Course • 31st October &amp; 1st November 2026
+                AgriVerse: UE Course • 31st October &amp; 1st November 2026
               </p>
               <p className="text-xs font-semibold text-[#3D6153]">
                 Theme: Modern Agriculture: Sustainable Practices, Innovations &amp; Future Farming
@@ -830,7 +830,7 @@ export default function RegisterPage() {
 
             {/* Editing Mode Banner */}
             {registeredProfile && (
-              <div className="mt-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#2D6A4F]/30 shadow-xs flex flex-wrap items-center justify-between gap-3">
+              <div className="mt-4 p-3.5 sm:p-4 rounded-xl bg-white border border-[#2D6A4F]/30 shadow-xs flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#DCFCE7] text-[#15803D] flex items-center justify-center shrink-0">
                     <Edit3 className="w-4 h-4" />
@@ -861,13 +861,13 @@ export default function RegisterPage() {
 
           {/* Conditional Gate: If Registrations are Closed by Administrator */}
           {eventGate.checked && !eventGate.isOpen ? (
-            <div className="relative z-10 bg-white p-8 sm:p-12 rounded-3xl border border-[#CCE3DE] shadow-sm text-center max-w-2xl mx-auto space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FEE2E2] border border-[#FCA5A5] text-[#DC2626] text-xs font-black uppercase tracking-wider">
+            <div className="relative z-10 bg-white p-8 sm:p-10 rounded-xl border border-gray-200 shadow-sm text-center max-w-2xl mx-auto space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#FEE2E2] border border-[#FCA5A5] text-[#DC2626] text-xs font-black uppercase tracking-wider">
                 <Lock className="w-3.5 h-3.5" />
                 <span>REGISTRATIONS CLOSED</span>
               </div>
 
-              <div className="w-20 h-20 rounded-3xl bg-[#FEF2F2] border border-[#FCA5A5] flex items-center justify-center text-[#DC2626] mx-auto shadow-inner">
+              <div className="w-16 h-16 rounded-xl bg-[#FEF2F2] border border-[#FCA5A5] flex items-center justify-center text-[#DC2626] mx-auto">
                 <Lock className="w-10 h-10" />
               </div>
 
@@ -881,7 +881,7 @@ export default function RegisterPage() {
               </div>
 
               {/* Helpful notice for existing registrants */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] text-left space-y-2">
+              <div className="p-4 sm:p-5 rounded-xl bg-[#F4F9F6] border border-[#CCE3DE] text-left space-y-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#1A3C34]">
                   <ShieldCheck className="w-4 h-4 text-[#15803D] shrink-0" />
                   <span>Already Registered? Check Your Status</span>
@@ -895,7 +895,7 @@ export default function RegisterPage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <Link
                   to="/status"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-[#15803D] hover:bg-[#1E5D39] text-white text-xs font-black uppercase tracking-wider transition-all shadow-md hover:shadow-lg"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-[#15803D] hover:bg-[#1E5D39] text-white text-xs font-black uppercase tracking-wider transition-all shadow-md hover:shadow-lg"
                 >
                   <Search className="w-4 h-4" />
                   <span>Check Registration Status</span>
@@ -903,7 +903,7 @@ export default function RegisterPage() {
 
                 <Link
                   to="/"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white border border-[#CCE3DE] hover:bg-[#EAF4F4] text-[#1A3C34] text-xs font-bold transition-all shadow-xs"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-white border border-[#CCE3DE] hover:bg-[#EAF4F4] text-[#1A3C34] text-xs font-bold transition-all shadow-xs"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Back to Home Overview</span>
@@ -944,7 +944,7 @@ export default function RegisterPage() {
 
               {/* Form Card */}
               <form onSubmit={handleSubmitProfile} className="relative z-10 space-y-6">
-            <div className="p-5 sm:p-8 rounded-2xl bg-[#CCE3DE] border border-[#A4C3B2] shadow-sm space-y-6">
+            <div className="p-5 sm:p-8 rounded-xl bg-slate-50/80 border border-gray-200 shadow-sm space-y-6">
               <div className="space-y-4 text-xs sm:text-sm">
                 {/* 1. Full Name */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4">
@@ -1208,7 +1208,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-4 rounded-[15px] bg-[#1A3C34] hover:bg-[#132A24] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 rounded-lg bg-[#0D2818] hover:bg-[#153E27] text-white font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
             >
               {submitting ? (
                 <>
@@ -1240,11 +1240,11 @@ export default function RegisterPage() {
           STEP 2: PAYMENT SCREEN (Seamless inline transition without reloading)
           ====================================================================== */}
       {step === 2 && registeredProfile && (
-        <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#CCE3DE] shadow-xl space-y-6 animate-in fade-in">
+        <div className="bg-white p-6 sm:p-10 rounded-xl border border-gray-200 shadow-sm space-y-6 animate-in fade-in">
           {/* Header */}
-          <div className="border-b border-[#CCE3DE] pb-5 space-y-3">
+          <div className="border-b border-gray-200 pb-5 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[12px] bg-[#DCFCE7] text-[#15803D] text-xs font-bold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#DCFCE7] text-[#15803D] text-xs font-bold uppercase tracking-wider">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Step 2 of 2: Complete ₹350 Fee Payment</span>
               </div>
@@ -1269,7 +1269,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Reserved Profile Summary Pill with Edit Option */}
-          <div className="p-4 sm:p-5 rounded-[16px] bg-[#F4F9F6] border border-[#CCE3DE] space-y-3">
+          <div className="p-4 sm:p-5 rounded-lg bg-slate-50 border border-gray-200 space-y-3">
             <div className="flex items-center justify-between border-b border-[#CCE3DE]/60 pb-2.5">
               <span className="text-[11px] font-bold text-[#1A3C34] uppercase tracking-wider flex items-center gap-1.5">
                 <span>Attendee Information</span>
@@ -1310,14 +1310,14 @@ export default function RegisterPage() {
           {/* Step 2 Form */}
           <form onSubmit={handleCompletePayment} className="space-y-6">
             {paymentError && (
-              <div className="p-4 rounded-2xl bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-center gap-3">
+              <div className="p-4 rounded-lg bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0 text-[#DC2626]" />
                 <span className="font-medium leading-relaxed">{paymentError}</span>
               </div>
             )}
 
             {/* 1. UPI QR Code Display Grid (Shows ALL Active QR Codes from Admin Panel) */}
-            <div className="p-5 sm:p-7 rounded-2xl bg-[#F4F9F6] border border-[#CCE3DE] space-y-5">
+            <div className="p-5 sm:p-7 rounded-xl bg-[#F4F9F6] border border-[#DCE8E2] space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#CCE3DE]/70 pb-3">
                 <div>
                   <h3 className="text-sm font-bold text-[#1A3C34] uppercase tracking-wider flex items-center gap-2">
@@ -1361,7 +1361,7 @@ export default function RegisterPage() {
                   return (
                     <div
                       key={method.id || idx}
-                      className="bg-white p-5 sm:p-6 rounded-2xl border-2 border-[#CCE3DE] hover:border-[#15803D] transition-all shadow-sm flex flex-col items-center justify-between text-center relative group"
+                      className="bg-white p-5 sm:p-6 rounded-xl border border-[#DCE8E2] hover:border-[#15803D] transition-all shadow-xs flex flex-col items-center justify-between text-center relative group"
                     >
                       {/* Top Header Pill with Title & Account Counter */}
                       <div className="w-full flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[#CCE3DE]/60">
@@ -1378,15 +1378,15 @@ export default function RegisterPage() {
                       </div>
 
                       {/* QR Image Box */}
-                      <div className="p-3.5 rounded-2xl bg-white border-2 border-[#CCE3DE] shadow-inner mb-3 flex items-center justify-center">
+                      <div className="p-3.5 rounded-xl bg-white border border-[#DCE8E2] shadow-xs mb-3 flex items-center justify-center">
                         {qrImageSrc ? (
                           <img
                             src={qrImageSrc}
                             alt={method.title || `Payment QR ${idx + 1}`}
-                            className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-xl"
+                            className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-lg"
                           />
                         ) : (
-                          <div className="w-48 h-48 sm:w-56 sm:h-56 bg-[#F4F9F6] rounded-xl flex flex-col items-center justify-center gap-2">
+                          <div className="w-48 h-48 sm:w-56 sm:h-56 bg-[#F4F9F6] rounded-lg flex flex-col items-center justify-center gap-2">
                             <RefreshCw className="w-7 h-7 animate-spin text-[#6B9080]" />
                             <span className="text-xs text-[#6B9080] font-medium">Generating QR...</span>
                           </div>
@@ -1444,7 +1444,7 @@ export default function RegisterPage() {
             </div>
 
             {/* 2. Proof Collection: UPI Reference ID & Payment Screenshot */}
-            <div className="p-5 sm:p-7 rounded-2xl bg-[#CCE3DE]/40 border border-[#A4C3B2] space-y-5">
+            <div className="p-5 sm:p-7 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] space-y-5">
               <h3 className="text-sm font-bold text-[#1A3C34] uppercase tracking-wider flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#15803D]" />
                 <span>Proof Collection &amp; Verification</span>
@@ -1470,7 +1470,7 @@ export default function RegisterPage() {
                   placeholder="e.g. 439281902812 or UPI Ref UTR number"
                   value={txnId}
                   onChange={(e) => setTxnId(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-3 rounded-xl bg-white border border-[#A4C3B2] text-xs sm:text-sm font-mono font-semibold text-[#1A3C34] outline-none focus:border-[#1A3C34] focus:ring-1 focus:ring-[#1A3C34] shadow-xs"
+                  className="w-full px-4 py-3 rounded-lg bg-white border border-[#DCE8E2] text-xs sm:text-sm font-mono font-semibold text-[#1A3C34] outline-none focus:border-[#1A3C34] focus:ring-1 focus:ring-[#1A3C34] shadow-xs"
                 />
                 <p className="text-[11px] text-[#3D6153]">
                   Enter the exact 12-digit UPI reference ID or alphanumeric transaction number from your payment receipt.
@@ -1494,7 +1494,7 @@ export default function RegisterPage() {
 
                 {filePreview ? (
                   /* Client-Side Image Preview Card with Change Image Button */
-                  <div className="p-4 rounded-2xl bg-white border-2 border-[#15803D] shadow-sm space-y-3">
+                  <div className="p-4 rounded-xl bg-white border border-[#15803D] shadow-xs space-y-3">
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <div className="relative group shrink-0">
                         <img
@@ -1543,9 +1543,9 @@ export default function RegisterPage() {
                   /* Clean File Drop/Selector Area */
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-6 sm:p-8 rounded-2xl bg-white border-2 border-dashed border-[#A4C3B2] hover:border-[#1A3C34] transition-all cursor-pointer text-center space-y-2 group shadow-xs"
+                    className="p-6 sm:p-8 rounded-xl bg-white border-2 border-dashed border-[#DCE8E2] hover:border-[#1A3C34] transition-all cursor-pointer text-center space-y-2 group shadow-xs"
                   >
-                    <div className="w-12 h-12 mx-auto rounded-full bg-[#EAF4F4] group-hover:bg-[#CCE3DE] text-[#1A3C34] flex items-center justify-center transition-all">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-[#EAF4F4] group-hover:bg-[#DCE8E2] text-[#1A3C34] flex items-center justify-center transition-all">
                       <Upload className="w-6 h-6 stroke-[2]" />
                     </div>
                     <div className="space-y-0.5">
@@ -1556,7 +1556,7 @@ export default function RegisterPage() {
                         Supports .jpg, .png, .jpeg, .webp (up to 10MB)
                       </p>
                     </div>
-                    <span className="inline-block px-3 py-1 rounded-full bg-[#F4F9F6] text-[#3D6153] text-[10px] font-semibold border border-[#CCE3DE]">
+                    <span className="inline-block px-3 py-1 rounded-full bg-[#F4F9F6] text-[#3D6153] text-[10px] font-semibold border border-[#DCE8E2]">
                       Instant client-side preview &amp; compression
                     </span>
                   </div>
@@ -1565,7 +1565,7 @@ export default function RegisterPage() {
             </div>
 
             {/* 3. Official WhatsApp Community Option */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#EAF4F4] border border-[#CCE3DE] space-y-2.5">
+            <div className="p-4 sm:p-5 rounded-xl bg-[#F8FAF9] border border-[#DCE8E2] space-y-2.5">
               <div>
                 <span className="text-xs font-bold text-[#1A3C34] block mb-1">
                   Official WhatsApp Community
@@ -1611,7 +1611,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={paymentSubmitting}
-                className="w-full py-4 rounded-[15px] bg-[#1A3C34] hover:bg-[#132A24] text-white font-bold text-xs sm:text-sm uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3.5 rounded-lg bg-[#0D2818] hover:bg-[#153E27] text-white font-bold text-xs sm:text-sm uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {paymentSubmitting ? (
                   <>
@@ -1626,7 +1626,7 @@ export default function RegisterPage() {
                 )}
               </button>
 
-              <div className="flex items-center justify-between text-[11px] text-[#6B9080] font-mono px-1">
+              <div className="flex items-center justify-between text-[11px] text-gray-500 font-mono px-1">
                 <span>Unique UTR verification enforced</span>
                 <span>Direct redirect to /success/:registrationId</span>
               </div>
@@ -1637,31 +1637,31 @@ export default function RegisterPage() {
 
       {/* CAPACITY FULL / 403 FORBIDDEN MODAL */}
       {capacityFullModal.show && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white p-7 sm:p-9 rounded-[24px] max-w-md w-full border border-[#CCE3DE] shadow-2xl text-center space-y-4">
-            <div className="w-14 h-14 mx-auto rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center">
-              <AlertCircle className="w-8 h-8" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white p-7 sm:p-8 rounded-xl max-w-md w-full border border-gray-200 shadow-xl text-center space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center">
+              <AlertCircle className="w-6 h-6" />
             </div>
 
             <h3 className="text-xl font-bold text-[#1A3C34]">
               Capacity Limit Reached
             </h3>
 
-            <p className="text-xs sm:text-sm text-[#3D6153] leading-relaxed">
+            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
               {capacityFullModal.message}
             </p>
 
             <div className="pt-2 flex flex-col gap-2">
               <Link
                 to="/"
-                className="w-full py-3 rounded-[12px] bg-[#1A3C34] text-white font-bold text-xs hover:bg-[#132A24] text-center"
+                className="w-full py-2.5 rounded-lg bg-[#0D2818] text-white font-bold text-xs hover:bg-[#153E27] text-center"
               >
                 Back to Home
               </Link>
               <button
                 type="button"
                 onClick={() => setCapacityFullModal({ show: false, message: '' })}
-                className="w-full py-2.5 rounded-[12px] bg-[#EAF4F4] text-[#1A3C34] font-semibold text-xs cursor-pointer"
+                className="w-full py-2 rounded-lg bg-gray-100 text-gray-700 font-semibold text-xs hover:bg-gray-200 cursor-pointer"
               >
                 Dismiss
               </button>

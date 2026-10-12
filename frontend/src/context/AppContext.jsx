@@ -7,10 +7,10 @@ const AppContext = createContext(null);
 export function AppProvider({ children }) {
   // Statistics State
   const [stats, setStats] = useState({
-    totalFilled: 13,
+    totalFilled: 0,
     maxSeats: 250,
-    seatsRemaining: 237,
-    percentFilled: '5.2',
+    seatsRemaining: 250,
+    percentFilled: '0.0',
     database: 'Ready',
     serverNode: 'node-5000'
   });
@@ -27,7 +27,7 @@ export function AppProvider({ children }) {
   const [settings, setSettings] = useState({
     whatsappLink: 'https://chat.whatsapp.com/invite/AgriVerseUECourse2026',
     totalSeats: 250,
-    bookedSeats: 13
+    bookedSeats: 0
   });
 
   // Active Issued ID Card / Pass for current session
@@ -121,9 +121,9 @@ export function AppProvider({ children }) {
     verifiedCount: 0,
     rejectedCount: 0,
     capacityLimit: 250,
-    currentRegistrations: 13,
-    remainingSlots: 237,
-    percentFilled: '5.2',
+    currentRegistrations: 0,
+    remainingSlots: 250,
+    percentFilled: '0.0',
     isOpen: true,
     recentRegistrations: []
   });

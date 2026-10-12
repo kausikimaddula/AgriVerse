@@ -41,7 +41,7 @@ export default function AdminLayout() {
       {/* Mobile Top Header */}
       <div className="md:hidden sticky top-0 z-40 bg-[#1A3C34] text-white px-4 py-3 flex items-center justify-between border-b border-[#27784A] shadow-md">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-[10px] bg-black flex items-center justify-center overflow-hidden shrink-0 border border-white/10">
+          <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center overflow-hidden shrink-0 border border-white/10">
             <AgrigenLogo className="w-full h-full object-cover" />
           </div>
           <span className="font-extrabold text-base tracking-tight text-white">AgriVerse Admin</span>
@@ -72,7 +72,7 @@ export default function AdminLayout() {
         {/* Top Brand Section */}
         <div className="p-5 border-b border-[#27784A]/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-inner border border-white/10 shrink-0 overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-sm border border-white/10 shrink-0 overflow-hidden">
               <AgrigenLogo className="w-full h-full object-cover" />
             </div>
             <div className="min-w-0">

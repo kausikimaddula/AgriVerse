@@ -239,8 +239,8 @@ export default function IdCardPage() {
         </div>
 
         {/* 5. PHYSICAL ID CARD BADGE CASING */}
-        <div className="w-full bg-white p-2 sm:p-3 rounded-3xl shadow-2xl border-4 border-slate-200/90 relative">
-          <div className="w-full bg-[#F4F9F6] p-5 sm:p-7 rounded-2xl border border-[#CCE3DE] overflow-hidden relative text-[#1A3C34]">
+        <div className="w-full bg-white p-2 sm:p-3 rounded-xl shadow-lg border-2 border-slate-300 relative">
+          <div className="w-full bg-[#F8FAF9] p-5 sm:p-7 rounded-lg border border-[#DCE8E2] overflow-hidden relative text-[#1A3C34]">
             {/* Corner Leaves */}
             <svg
               className="absolute -top-3 -right-3 w-24 h-24 text-[#1A3C34] pointer-events-none select-none opacity-80 z-0"
@@ -268,7 +268,7 @@ export default function IdCardPage() {
             {/* ID Card Body */}
             <div className="relative z-10 space-y-4">
               {finalSuccessPass ? (
-                <div className="p-5 sm:p-6 rounded-2xl bg-white border-2 border-[#15803D] text-center space-y-3 shadow-sm">
+                <div className="p-5 sm:p-6 rounded-xl bg-white border-2 border-[#15803D] text-center space-y-3 shadow-sm">
                   <div className="w-12 h-12 mx-auto rounded-full bg-[#DCFCE7] text-[#15803D] flex items-center justify-center shadow-sm">
                     <CheckCircle className="w-7 h-7 stroke-[2.5]" />
                   </div>
@@ -311,7 +311,7 @@ export default function IdCardPage() {
               ) : (
                 <form onSubmit={handleCompleteRegistration} className="space-y-4">
                   {/* TWO QR CODES */}
-                  <div className="p-4 rounded-2xl bg-white border border-[#CCE3DE] shadow-sm space-y-2.5">
+                  <div className="p-4 rounded-xl bg-white border border-[#DCE8E2] shadow-sm space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-[#1A3C34] uppercase tracking-wide flex items-center gap-1.5">
                         <span>1. Scan &amp; Pay (₹350)</span>
@@ -348,7 +348,7 @@ export default function IdCardPage() {
                   </div>
 
                   {/* UTR NUMBER */}
-                  <div className="p-4 rounded-2xl bg-white border border-[#CCE3DE] shadow-sm space-y-1.5">
+                  <div className="p-4 rounded-xl bg-white border border-[#DCE8E2] shadow-sm space-y-1.5">
                     <label className="block text-xs font-bold text-[#1A3C34] tracking-wide">
                       2. Transaction ID / UTR Number <span className="text-[#DC2626]">*</span>
                     </label>
@@ -363,7 +363,7 @@ export default function IdCardPage() {
                   </div>
 
                   {/* UPLOAD PAYMENT SCREENSHOT */}
-                  <div className="p-4 rounded-2xl bg-white border border-[#CCE3DE] shadow-sm space-y-1.5">
+                  <div className="p-4 rounded-xl bg-white border border-[#DCE8E2] shadow-sm space-y-1.5">
                     <label className="block text-xs font-bold text-[#1A3C34] tracking-wide">
                       3. Upload Payment Screenshot <span className="text-[#DC2626]">*</span>
                     </label>
@@ -388,7 +388,7 @@ export default function IdCardPage() {
                   </div>
 
                   {/* JOIN WHATSAPP GROUP */}
-                  <div className="p-3.5 rounded-2xl bg-white border border-[#CCE3DE] shadow-sm space-y-2">
+                  <div className="p-3.5 rounded-xl bg-white border border-[#DCE8E2] shadow-sm space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="block text-xs font-bold text-[#1A3C34] tracking-wide">
                         4. Join WhatsApp Group <span className="text-[#DC2626] font-bold text-sm leading-none">*</span>
@@ -482,7 +482,7 @@ export default function IdCardPage() {
       {/* Enlarged QR Modal */}
       {enlargeQr && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-2xl max-w-xs w-full text-center space-y-4 border border-[#CCE3DE] shadow-2xl">
+          <div className="bg-white p-6 rounded-xl max-w-xs w-full text-center space-y-4 border border-[#DCE8E2] shadow-2xl">
             <div className="flex justify-between items-center">
               <h4 className="font-bold text-sm text-[#1A3C34]">Official UPI QR</h4>
               <button onClick={() => setEnlargeQr(false)} className="text-[#6B9080] hover:text-[#1A3C34] cursor-pointer">

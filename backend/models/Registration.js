@@ -139,7 +139,7 @@ const registrationSchema = new mongoose.Schema(
     },
     storageProvider: {
       type: String,
-      enum: ['cloudinary', 'local', 'none'],
+      enum: ['cloudinary', 'none'],
       default: 'none'
     },
     college: {
@@ -299,6 +299,14 @@ registrationSchema.pre('validate', function () {
     if (this.status === 'PENDING_PAYMENT') {
       this.status = 'PENDING_AUDIT';
     }
+  }
+
+  // Prevent raw base64 images from ever being saved directly in MongoDB
+  if (this.proofUrl && typeof this.proofUrl === 'string' && this.proofUrl.startsWith('data:image')) {
+    throw new Error('Images cannot be stored directly in MongoDB. Please upload to Cloudinary.');
+  }
+  if (this.paymentScreenshot?.url && typeof this.paymentScreenshot.url === 'string' && this.paymentScreenshot.url.startsWith('data:image')) {
+    throw new Error('Images cannot be stored directly in MongoDB. Please upload to Cloudinary.');
   }
 });
 

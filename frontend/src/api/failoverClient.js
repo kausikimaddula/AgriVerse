@@ -7,8 +7,10 @@ import axios from 'axios';
 
 // Default endpoint pool: Primary Node + Localhost Replica / Backup Node
 const DEFAULT_ENDPOINTS = [
-  import.meta.env.VITE_PRIMARY_API_URL || 'http://localhost:5000/api',
-  import.meta.env.VITE_REPLICA_API_URL || 'http://127.0.0.1:5000/api'
+  import.meta.env.VITE_PRIMARY_API_URL || 'http://localhost:5050/api',
+  import.meta.env.VITE_REPLICA_API_URL || 'http://localhost:5050/api',
+  'http://127.0.0.1:5050/api',
+  'http://127.0.0.1:5050/api'
 ];
 
 class FailoverEngine {
@@ -71,7 +73,7 @@ class FailoverEngine {
   rotateToNextNode() {
     const prevIndex = this.currentIndex;
     this.currentIndex = (this.currentIndex + 1) % this.endpoints.length;
-    console.warn(`🔄 Auto-Failover: Switching from Node ${prevIndex + 1} (${this.endpoints[prevIndex]}) to Node ${this.currentIndex + 1} (${this.endpoints[this.currentIndex]})`);
+    console.warn(`Auto-Failover: Switching from Node ${prevIndex + 1} (${this.endpoints[prevIndex]}) to Node ${this.currentIndex + 1} (${this.endpoints[this.currentIndex]})`);
     this.notify();
     return this.endpoints[this.currentIndex];
   }
